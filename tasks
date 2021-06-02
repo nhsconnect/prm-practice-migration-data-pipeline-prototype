@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -Eeo pipefail
+
+for command in "$@"
+do
+  echo "--- ${command} ---"
+  case "${command}" in
+    dojo-validate)
+        dojo "./tasks devenv validate"
+        ;;
+  esac
+done
+
+set +e
