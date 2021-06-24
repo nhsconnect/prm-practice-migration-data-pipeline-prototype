@@ -5,19 +5,21 @@ Providing a centralised cloud based mechanism in which practice migration data t
 
 These instructions assume you are using:
 
-- [aws-vault](https://github.com/99designs/aws-vault) to validate your AWS credentials.
 - [dojo](https://github.com/kudulab/dojo) to provide an execution environment
 
 ## Applying terraform
 
 Rolling out terraform against each environment is managed by the GoCD pipeline. If you'd like to test it locally, run the following commands:
 
-1. Enter the container:
+1. Set your AWS Credentials
 
-`aws-vault exec <profile-name> -- dojo`
+`assume-role <profile-name>`
 
+2. Enter the container
 
-2. Invoke terraform locally
+`dojo`
+
+3. Invoke terraform locally
 
 ```
   ./tasks validate <stack-name> <environment>
