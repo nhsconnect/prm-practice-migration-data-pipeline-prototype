@@ -1,5 +1,6 @@
 variable "environment" {
   type        = string
+  default     = "test"
   description = "Uniquely identities each deployment, i.e. dev, prod."
 }
 
