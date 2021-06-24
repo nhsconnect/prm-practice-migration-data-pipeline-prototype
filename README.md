@@ -6,6 +6,7 @@ Providing a centralised cloud based mechanism in which practice migration data t
 These instructions assume you are using:
 
 - [dojo](https://github.com/kudulab/dojo) to provide an execution environment
+- [assume-role](https://github.com/remind101/assume-role) to set your AWS Credentials
 
 ## Applying terraform
 
