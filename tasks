@@ -34,21 +34,22 @@ function tf_init {
 }
 
 function tf_plan {
-#  operation=$1
-#  certs=$2
+   operation=$1
+#   certs=$2
 #  set_image_tag
 
   tf_init
-  terraform plan -out="pracmig-datasync.tfplan"
+
+#  terraform plan -out="pracmig-datasync.tfplan"
 #  terraform get # modules
-#  if [[ "${operation}" == "create" ]]; then
-#    terraform plan -var task_image_tag=$IMAGE_TAG -var-file=$NHS_ENVIRONMENT.tfvars $TARGET -out="nhs_deployment.tfplan"
-#  elif [[ "${operation}" == "destroy" ]]; then
-#    terraform plan -var task_image_tag=$IMAGE_TAG -var-file=$NHS_ENVIRONMENT.tfvars -out="nhs_deployment.tfplan" -destroy
-#  else
-#    echo "Unknown operation (should be create or destroy), got: ${operation}"
-#    exit 1
-#  fi
+  if [[ "${operation}" == "create" ]]; then
+      terraform plan -out="pracmig-datasync.tfplan"
+  elif [[ "${operation}" == "destroy" ]]; then
+      terraform plan -out="pracmig-datasync.tfplan" -destroy
+  else
+    echo "Unknown operation (should be create or destroy), got: ${operation}"
+    exit 1
+  fi
 }
 
 function tf_apply {
@@ -65,10 +66,10 @@ do
         dojo "./tasks devenv validate"
       ;;
     tf_plan)
-      dojo "./tasks _tf_plan"
+      dojo "./tasks _tf_plan $2"
       ;;
     _tf_plan)
-      tf_plan
+      tf_plan "$2"
       ;;
     tf_apply)
       dojo "./tasks _tf_apply"
