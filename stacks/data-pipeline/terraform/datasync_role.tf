@@ -33,7 +33,7 @@ resource "aws_iam_policy" "datasync_storage_access_policy" {
           "s3:ListBucketMultipartUploads"
         ],
         Effect: "Allow",
-        Resource: aws_s3_bucket.datasync_bucket.arn
+        Resource: aws_s3_bucket.datasync_cloud_bucket.arn
       },
       {
         Action: [
@@ -46,7 +46,7 @@ resource "aws_iam_policy" "datasync_storage_access_policy" {
           "s3:PutObject"
         ],
         Effect: "Allow",
-        Resource: "${aws_s3_bucket.datasync_bucket.arn}/*"
+        Resource: "${aws_s3_bucket.datasync_cloud_bucket.arn}/*"
       }
     ]
   })

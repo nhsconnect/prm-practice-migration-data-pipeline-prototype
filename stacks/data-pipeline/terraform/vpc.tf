@@ -1,4 +1,4 @@
-resource "aws_vpc" "datasync_agent_vpc" {
+resource "aws_vpc" "supplier_simulation_vpc" {
   cidr_block = "10.0.0.0/16"
 
   tags = {
@@ -6,8 +6,8 @@ resource "aws_vpc" "datasync_agent_vpc" {
   }
 }
 
-resource "aws_subnet" "suppiler_simulation_subnet" {
-  vpc_id     = aws_vpc.datasync_agent_vpc.id
+resource "aws_subnet" "supplier_simulation_subnet" {
+  vpc_id     = aws_vpc.supplier_simulation_vpc.id
   cidr_block = "10.0.1.0/24"
 
   tags = {

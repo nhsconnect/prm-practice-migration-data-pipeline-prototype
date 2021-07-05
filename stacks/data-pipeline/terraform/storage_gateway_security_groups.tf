@@ -1,7 +1,7 @@
 resource "aws_security_group" "storage_gateway_sg" {
   name        = "storage_gateway_sg"
   description = "Security group for the file storage gateway"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = aws_vpc.supplier_simulation_vpc.id
 
   egress {
     description      = "Allow all egress traffic"

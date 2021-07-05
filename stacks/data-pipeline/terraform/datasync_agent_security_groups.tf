@@ -1,7 +1,7 @@
 resource "aws_security_group" "datasync_agent_sg" {
   name        = "datasync_agent_sg"
   description = "Security group for the datasync agent"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = aws_vpc.supplier_simulation_vpc.id
 
   # ingress {
   #   description      = "Activation traffic from web browser"
