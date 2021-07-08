@@ -1,4 +1,4 @@
-resource "aws_datasync_task" "pracmig_datasync_task" {
+resource "aws_datasync_task" "supplier_to_cloud_datasync_task" {
   destination_location_arn = aws_datasync_location_s3.destination_location.arn
   name                     = "pracmig"
   source_location_arn      = aws_datasync_location_s3.source_location.arn
@@ -10,7 +10,7 @@ resource "aws_datasync_location_s3" "source_location" {
   subdirectory  = "/source"
 
   s3_config {
-    bucket_access_role_arn = aws_iam_role.datasync_bucket_access_role.arn
+    bucket_access_role_arn = aws_iam_role.source_supplier_datasync_bucket_access_role.arn
   }
 }
 
@@ -19,6 +19,6 @@ resource "aws_datasync_location_s3" "destination_location" {
   subdirectory  = "/destination"
 
   s3_config {
-    bucket_access_role_arn = aws_iam_role.datasync_bucket_access_role.arn
+    bucket_access_role_arn = aws_iam_role.source_supplier_datasync_bucket_access_role.arn
   }
 }
