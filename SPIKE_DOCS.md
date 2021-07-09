@@ -31,7 +31,7 @@ Once the DataSync task has completed, open the [destination S3 bucket](https://s
 
 ### Activation
 
-Activation requires the terraform host to have a rout to port 80 for the activation target.
+Activation requires the terraform host to have a rout to port 80 for the activation target. As a work around both the DataSync agent and the Storage Gateway can be activiated via the AWS console.
 
 #### StorageGateway  
 
@@ -39,7 +39,7 @@ Activation requires the terraform host to have a rout to port 80 for the activat
 2. Under the Gateways tab choose "Create Gateway"
 3. Follow instructions to activate the EC2 gateway
 
-#### DataSynce  
+#### DataSync
 
 1. Visit the DataSync in AWS console
 2. Under the Agents tab choose "Add Agent"
