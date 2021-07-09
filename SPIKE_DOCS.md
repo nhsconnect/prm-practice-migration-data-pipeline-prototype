@@ -1,6 +1,6 @@
 ## Activation
 
-Activation requires the terraform host to have a rout to port 80 for the activation target. In this spike both of the EC2 activation targets are on a private subnet with no Internet Gateway so as a work around both the DataSync agent and the Storage Gateway can be activiated via the AWS console.
+Activation requires the terraform host to have a rout to port 80 on the EC2 activation target. In this spike both of the EC2 activation targets are on a private subnet with no Internet Gateway so as a work around both the DataSync agent and the Storage Gateway can be activiated via the AWS console.
 
 #### StorageGateway  
 
