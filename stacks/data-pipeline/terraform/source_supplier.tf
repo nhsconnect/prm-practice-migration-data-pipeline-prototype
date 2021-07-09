@@ -84,7 +84,7 @@ resource "aws_iam_policy" "datasync_storage_access_policy" {
 }
 
 resource "aws_storagegateway_gateway" "source_supplier_storage_gateway" {
-  gateway_ip_address = aws_instance.source_supplier_storage_gateway_instance.private_ip
+  gateway_ip_address = aws_instance.source_supplier_storage_gateway_instance.public_ip
   gateway_name       = "source_supplier_storage_gateway"
   gateway_timezone   = "GMT"
   gateway_type       = "FILE_S3"
@@ -95,6 +95,27 @@ resource "aws_storagegateway_nfs_file_share" "source_supplier_nfs_file_share" {
   gateway_arn  = aws_storagegateway_gateway.source_supplier_storage_gateway.arn
   location_arn = aws_s3_bucket.source_supplier_bucket.arn
   role_arn     = aws_iam_role.source_supplier_storage_gateway_role.arn
+}
+
+resource "aws_volume_attachment" "ebs_att" {
+  device_name = "/dev/sdh"
+  volume_id   = aws_ebs_volume.source_supplier_storage_gateway_volume.id
+  instance_id = aws_instance.source_supplier_storage_gateway_instance.id
+}
+
+resource "aws_ebs_volume" "source_supplier_storage_gateway_volume" {
+  availability_zone = aws_instance.source_supplier_storage_gateway_instance.availability_zone
+  size              = 150
+}
+
+data "aws_storagegateway_local_disk" "source_supplier_storage_gateway_local_disk" {
+  disk_path   = aws_volume_attachment.ebs_att.device_name
+  gateway_arn = aws_storagegateway_gateway.source_supplier_storage_gateway.arn
+}
+
+resource "aws_storagegateway_cache" "source_supplier_storage_gateway_cache" {
+  disk_id     = data.aws_storagegateway_local_disk.source_supplier_storage_gateway_local_disk.id
+  gateway_arn = aws_storagegateway_gateway.source_supplier_storage_gateway.arn
 }
 
 resource "aws_instance" "source_supplier_storage_gateway_instance" {
@@ -171,11 +192,12 @@ resource "aws_internet_gateway" "source_supplier_internet_gateway" {
   }
 }
 
-resource "aws_route_table" "source_supplier_route_table" {
-  vpc_id = aws_vpc.source_supplier_vpc.id
+
+resource "aws_default_route_table" "source_supplier_route_table" {
+  default_route_table_id = aws_vpc.source_supplier_vpc.default_route_table_id
 
   route {
-    cidr_block = "10.0.1.0/24"
+    cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.source_supplier_internet_gateway.id
   }
 

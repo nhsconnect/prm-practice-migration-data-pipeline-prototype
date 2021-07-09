@@ -2,6 +2,12 @@ resource "aws_datasync_task" "supplier_to_cloud_datasync_task" {
   destination_location_arn = aws_datasync_location_s3.destination_location.arn
   name                     = "pracmig"
   source_location_arn      = aws_datasync_location_s3.source_location.arn
+
+  options {
+    posix_permissions = "NONE"
+    gid = "NONE"
+    uid = "NONE"
+  }
   
 }
 
