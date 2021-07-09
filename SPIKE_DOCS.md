@@ -1,3 +1,19 @@
+## Activation
+
+Activation requires the terraform host to have a rout to port 80 for the activation target. As a work around both the DataSync agent and the Storage Gateway can be activiated via the AWS console.
+
+#### StorageGateway  
+
+1. Visit the StorageGateway in AWS console
+2. Under the Gateways tab choose "Create Gateway"
+3. Follow instructions to activate the EC2 gateway
+
+#### DataSync
+
+1. Visit the DataSync in AWS console
+2. Under the Agents tab choose "Add Agent"
+3. Follow instructions to activate the EC2 agent.
+
 ## Demonstration
 
 Once the Terraform has been applied, there will be a Storage Gateway with an NFS file share, and a DataSync task that will move data from the file share to a separate S3 bucket.
@@ -29,18 +45,3 @@ To execute the DataSync task, which will transfer any files in the file share to
 
 Once the DataSync task has completed, open the [destination S3 bucket](https://s3.console.aws.amazon.com/s3/buckets/test-pracmig-datasync-bucket?region=eu-west-2&tab=objects#) in the AWS Console. In it, there should be a _destination_ directory containing a copy of each file in the file share.
 
-### Activation
-
-Activation requires the terraform host to have a rout to port 80 for the activation target. As a work around both the DataSync agent and the Storage Gateway can be activiated via the AWS console.
-
-#### StorageGateway  
-
-1. Visit the StorageGateway in AWS console
-2. Under the Gateways tab choose "Create Gateway"
-3. Follow instructions to activate the EC2 gateway
-
-#### DataSync
-
-1. Visit the DataSync in AWS console
-2. Under the Agents tab choose "Add Agent"
-3. Follow instructions to activate the EC2 agent.
