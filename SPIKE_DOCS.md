@@ -28,3 +28,19 @@ To execute the DataSync task, which will transfer any files in the file share to
 ### Checking the destination bucket
 
 Once the DataSync task has completed, open the [destination S3 bucket](https://s3.console.aws.amazon.com/s3/buckets/test-pracmig-datasync-bucket?region=eu-west-2&tab=objects#) in the AWS Console. In it, there should be a _destination_ directory containing a copy of each file in the file share.
+
+### Activation
+
+Activation requires the terraform host to have a rout to port 80 for the activation target.
+
+#### StorageGateway  
+
+1. Visit the StorageGateway in AWS console
+2. Under the Gateways tab choose "Create Gateway"
+3. Follow instructions to activate the EC2 gateway
+
+#### DataSynce  
+
+1. Visit the DataSync in AWS console
+2. Under the Agents tab choose "Add Agent"
+3. Follow instructions to activate the EC2 agent.
