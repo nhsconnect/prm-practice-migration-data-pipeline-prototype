@@ -3,6 +3,43 @@ resource "aws_s3_bucket" "source_supplier_bucket" {
   acl    = "private"
 }
 
+resource "aws_instance" "source_supplier" {
+  ami = "ami-03ac5a9b225e99b02"
+  instance_type = "t2.micro"
+  subnet_id = "${aws_subnet.source_supplier_subnet.id}"
+  vpc_security_group_ids = [aws_security_group.source_supplier_instance_sg.id]
+  key_name = "pracmig"
+  availability_zone = data.aws_availability_zone.az.name
+
+  tags = {
+    Name="Source supplier instance"
+  }
+}
+
+resource "aws_security_group" "source_supplier_instance_sg" {
+  name        = "source_supplier_instance_sg"
+  description = "Security group for the EC2 instance"
+  vpc_id      = aws_vpc.source_supplier_vpc.id
+
+  ingress {
+    description      = "Allow SSH ingress access for Emily"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = ["86.169.113.163/32"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  egress {
+    description      = "Allow all egress traffic"
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+}
+
 resource "aws_instance" "source_supplier_datasync_agent" {
   ami = "ami-0826a7cca7cf05f06"
   instance_type = "m5.2xlarge"
@@ -19,6 +56,15 @@ resource "aws_security_group" "source_supplier_datasync_agent_sg" {
   description = "Security group for the datasync agent"
   vpc_id      = aws_vpc.source_supplier_vpc.id
 
+  ingress {
+    description      = "Allow http ingress access for Emily"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["86.169.113.163/32"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
   egress {
     description      = "Allow all egress traffic"
     from_port        = 0
@@ -31,7 +77,7 @@ resource "aws_security_group" "source_supplier_datasync_agent_sg" {
 
 resource "aws_iam_role" "source_supplier_datasync_bucket_access_role" {
   name = "source_supplier_datasync_bucket_access_role"
-  managed_policy_arns = [aws_iam_policy.datasync_storage_access_policy.arn]
+  managed_policy_arns = [aws_iam_policy.source_datasync_storage_access_policy.arn]
 
   # Terraform's "jsonencode" function converts a
   # Terraform expression result to valid JSON syntax.
@@ -51,8 +97,8 @@ resource "aws_iam_role" "source_supplier_datasync_bucket_access_role" {
 
 }
 
-resource "aws_iam_policy" "datasync_storage_access_policy" {
-  name = "datasync_storage_access_policy"
+resource "aws_iam_policy" "source_datasync_storage_access_policy" {
+  name = "source_datasync_storage_access_policy"
 
   policy = jsonencode({
     "Version": "2012-10-17",
@@ -97,7 +143,7 @@ resource "aws_storagegateway_nfs_file_share" "source_supplier_nfs_file_share" {
   role_arn     = aws_iam_role.source_supplier_storage_gateway_role.arn
 }
 
-resource "aws_volume_attachment" "ebs_att" {
+resource "aws_volume_attachment" "source_ebs_att" {
   device_name = "/dev/sdh"
   volume_id   = aws_ebs_volume.source_supplier_storage_gateway_volume.id
   instance_id = aws_instance.source_supplier_storage_gateway_instance.id
@@ -109,7 +155,7 @@ resource "aws_ebs_volume" "source_supplier_storage_gateway_volume" {
 }
 
 data "aws_storagegateway_local_disk" "source_supplier_storage_gateway_local_disk" {
-  disk_path   = aws_volume_attachment.ebs_att.device_name
+  disk_node   = "/dev/sdh"
   gateway_arn = aws_storagegateway_gateway.source_supplier_storage_gateway.arn
 }
 
@@ -126,13 +172,13 @@ resource "aws_instance" "source_supplier_storage_gateway_instance" {
   associate_public_ip_address = true
 
   tags = {
-    Name = "Storage gateway"
+    Name = "Source supplier storage gateway"
   }
 }
 
 resource "aws_iam_role" "source_supplier_storage_gateway_role" {
   name = "source_supplier_storage_gateway_role"
-  managed_policy_arns = [aws_iam_policy.datasync_storage_access_policy.arn]
+  managed_policy_arns = [aws_iam_policy.source_datasync_storage_access_policy.arn]
 
   # Terraform's "jsonencode" function converts a
   # Terraform expression result to valid JSON syntax.
@@ -157,6 +203,38 @@ resource "aws_security_group" "source_supplier_storage_gateway_sg" {
   description = "Security group for the file storage gateway"
   vpc_id      = aws_vpc.source_supplier_vpc.id
 
+  ingress {
+    description      = "Allow http ingress access for Emily"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["86.169.113.163/32"]
+  }
+
+  ingress {
+    description      = "Allow storage gateway traffic"
+    from_port        = 2049
+    to_port          = 2049
+    protocol         = "tcp"
+    cidr_blocks      = [aws_subnet.source_supplier_subnet.cidr_block]
+  }
+
+  ingress {
+    description      = "Allow storage gateway traffic"
+    from_port        = 111
+    to_port          = 111
+    protocol         = "tcp"
+    cidr_blocks      = [aws_subnet.source_supplier_subnet.cidr_block]
+  }
+
+  ingress {
+    description      = "Allow storage gateway traffic"
+    from_port        = 20048
+    to_port          = 20048
+    protocol         = "tcp"
+    cidr_blocks      = [aws_subnet.source_supplier_subnet.cidr_block]
+  }
+
   egress {
     description      = "Allow all egress traffic"
     from_port        = 0
@@ -178,10 +256,12 @@ resource "aws_vpc" "source_supplier_vpc" {
 resource "aws_subnet" "source_supplier_subnet" {
   vpc_id     = aws_vpc.source_supplier_vpc.id
   cidr_block = "10.0.1.0/24"
+  map_public_ip_on_launch = true
+  availability_zone = data.aws_availability_zone.az.name
 
   tags = {
-    Name = "Source supplier subnet"
-  }
+      Name = "Source supplier subnet"
+    }
 }
 
 resource "aws_internet_gateway" "source_supplier_internet_gateway" {
