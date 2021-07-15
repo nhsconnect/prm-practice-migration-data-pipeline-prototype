@@ -1,4 +1,5 @@
 # prm-practice-migration-data-pipeline-prototype
+
 Providing a centralised cloud based mechanism in which practice migration data transfers can be done electronically.
 
 ## Setup
@@ -10,24 +11,15 @@ These instructions assume you are using:
 
 ## Applying terraform
 
-Rolling out terraform against each environment is managed by the GoCD pipeline. If you'd like to test it locally, run the following commands:
+To run the terraform locally, run the following commands:
 
 1. Set your AWS Credentials
+   ```
+   assume-role <profile-name>
+   ```
+1. Invoke terraform locally
 
-`assume-role <profile-name>`
-
-2. Enter the container
-
-`dojo`
-
-3. Invoke terraform locally
-
-```
-  ./tasks validate <stack-name> <environment>
-  ./tasks plan <stack-name> <environment>
-```
-
-The stack name denotes the specific stack you would like to validate.
-The environment can be `dev` or `preprod`.
-
-To run the formatting, run `./tasks format <stack-name> <environment>`
+   ```
+     ./tasks tf_plan create
+     ./tasks tf_apply
+   ```
