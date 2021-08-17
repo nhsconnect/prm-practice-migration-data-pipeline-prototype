@@ -24,17 +24,23 @@ provider:
   name: aws
   runtime: python3.8
   lambdaHashingVersion: 20201221
-
 # you can overwrite defaults here
 #  stage: dev
-#  region: us-east-1
+  region: eu-west-2
 
 # you can add statements to the Lambda function's IAM Role here
-#  iamRoleStatements:
-#    - Effect: "Allow"
-#      Action:
-#        - "s3:ListBucket"
-#      Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ] ]  }
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:PutObject"
+      Resource:
+        - Fn::GetAtt:
+          - SourceSupplierBucket
+          - Arn
+        - Fn::GetAtt:
+          - TargetSupplierBucket
+          - Arn
+
 #    - Effect: "Allow"
 #      Action:
 #        - "s3:PutObject"
@@ -101,13 +107,23 @@ functions:
 #      variable2: value2
 
 # you can add CloudFormation resource templates here
-#resources:
-#  Resources:
-#    NewResource:
-#      Type: AWS::S3::Bucket
-#      Properties:
-#        BucketName: my-new-bucket
-#  Outputs:
-#     NewOutput:
-#       Description: "Description for the output"
-#       Value: "Some output value"
+resources:
+  Resources:
+    SourceSupplierBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: pracmig-source-supplier-test-bucket
+
+    TargetSupplierBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: pracmig-target-supplier-test-bucket
+
+  Outputs:
+     SourceSupplierBucketArn:
+       Description: "Source Supplier Bucket ARN"
+       Value: !Ref SourceSupplierBucket
+
+     TargetSupplierBucketArn:
+       Description: "Target Supplier Bucket ARN"
+       Value: !Ref TargetSupplierBucket
