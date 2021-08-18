@@ -15,8 +15,12 @@ def testMigrator(event, context):
         read_test_data_from_target_supplier_bucket()
     except ClientError as e:
         logging.error(e)
-        return False
-    return True
+        return {
+            "statusCode": 500
+        }
+    return {
+        "statusCode": 200
+    }
 
 def read_test_data_from_target_supplier_bucket():
     s3_client = boto3.client('s3', region_name=REGION)
