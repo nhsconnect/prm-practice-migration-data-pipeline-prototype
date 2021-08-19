@@ -5,7 +5,7 @@ from botocore.exceptions import ClientError
 
 REGION = "eu-west-2"
 
-def testMigrator(event, context):
+def test_migrator(event, context):
 
     try:
         source_data = "test"
