@@ -24,22 +24,22 @@ provider:
   name: aws
   runtime: python3.8
   lambdaHashingVersion: 20201221
-# you can overwrite defaults here
-#  stage: dev
+  # you can overwrite defaults here
+  #  stage: dev
   region: eu-west-2
 
-# you can add statements to the Lambda function's IAM Role here
+  # you can add statements to the Lambda function's IAM Role here
   iamRoleStatements:
     - Effect: "Allow"
       Action:
         - "s3:PutObject"
       Resource:
         - Fn::GetAtt:
-          - SourceSupplierBucket
-          - Arn
+            - SourceSupplierBucket
+            - Arn
         - Fn::GetAtt:
-          - TargetSupplierBucket
-          - Arn
+            - TargetSupplierBucket
+            - Arn
 
 #    - Effect: "Allow"
 #      Action:
@@ -120,10 +120,10 @@ resources:
         BucketName: pracmig-target-supplier-test-bucket
 
   Outputs:
-     SourceSupplierBucketArn:
-       Description: "Source Supplier Bucket ARN"
-       Value: !Ref SourceSupplierBucket
+    SourceSupplierBucketArn:
+      Description: "Source Supplier Bucket ARN"
+      Value: !Ref SourceSupplierBucket
 
-     TargetSupplierBucketArn:
-       Description: "Target Supplier Bucket ARN"
-       Value: !Ref TargetSupplierBucket
+    TargetSupplierBucketArn:
+      Description: "Target Supplier Bucket ARN"
+      Value: !Ref TargetSupplierBucket
