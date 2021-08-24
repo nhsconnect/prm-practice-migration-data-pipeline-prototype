@@ -107,23 +107,7 @@ functions:
 #      variable2: value2
 
 # you can add CloudFormation resource templates here
-resources:
-  Resources:
-    SourceSupplierBucket:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: pracmig-source-supplier-test-bucket
+#resources:
+#  Resources:
 
-    TargetSupplierBucket:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: pracmig-target-supplier-test-bucket
-
-  Outputs:
-    SourceSupplierBucketArn:
-      Description: "Source Supplier Bucket ARN"
-      Value: !Ref SourceSupplierBucket
-
-    TargetSupplierBucketArn:
-      Description: "Target Supplier Bucket ARN"
-      Value: !Ref TargetSupplierBucket
+#  Outputs:
