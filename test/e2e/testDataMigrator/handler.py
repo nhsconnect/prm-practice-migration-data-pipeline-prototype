@@ -4,18 +4,17 @@ import polling
 from botocore.exceptions import ClientError
 
 REGION = "eu-west-2"
-TASK_ARN = "arn:aws:datasync:eu-west-2:327778747031:task/task-077b1497521e705ea"
 
 
 def test_migrator(event, context):
-
     try:
+        task_arn = event["TaskArn"]
         source_data = "test"
-        write_test_data_to_source_supplier_bucket(source_data, TASK_ARN)
+        write_test_data_to_source_supplier_bucket(source_data, task_arn)
 
-        transfer_files(TASK_ARN)
+        transfer_files(task_arn)
 
-        target_data = read_test_data_from_target_supplier_bucket(TASK_ARN)
+        target_data = read_test_data_from_target_supplier_bucket(task_arn)
 
         if source_data != target_data:
             return {
@@ -32,6 +31,12 @@ def test_migrator(event, context):
         logging.error(e)
         return {
             "statusCode": 500
+        }
+
+    except KeyError as e:
+        logging.error(e)
+        return {
+            "statusCode": 400
         }
 
 
