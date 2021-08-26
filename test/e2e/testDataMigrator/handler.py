@@ -2,6 +2,7 @@ import boto3
 import logging
 import polling
 from botocore.exceptions import ClientError
+import uuid
 
 REGION = "eu-west-2"
 
@@ -14,11 +15,12 @@ def test_migrator(event, context):
         target_bucket_role_arn = event["TargetBucketAccessRoleArn"]
         source_data = "test"
 
-        write_test_data_to_source_supplier_bucket(source_data, task_arn)
+        object_key = write_test_data_to_source_supplier_bucket(source_data, task_arn)
+        logging.info(f"Test object written with key: {object_key}")
 
         transfer_files(task_arn)
 
-        target_data = read_test_data_from_target_supplier_bucket(task_arn, target_bucket_role_arn)
+        target_data = read_test_data_from_target_supplier_bucket(task_arn, target_bucket_role_arn, object_key)
 
         if source_data != target_data:
             return {
@@ -76,7 +78,7 @@ def retrieve_bucket_name(task_arn, location_arn_key):
     return bucket_name
 
 
-def read_test_data_from_target_supplier_bucket(task_arn, role_arn):
+def read_test_data_from_target_supplier_bucket(task_arn, role_arn, object_key):
     bucket_name = retrieve_bucket_name(task_arn, location_arn_key="DestinationLocationArn")
     logging.info(f'Target bucket name: {bucket_name}')
 
@@ -91,7 +93,7 @@ def read_test_data_from_target_supplier_bucket(task_arn, role_arn):
         aws_session_token=credentials['SessionToken']
     )
 
-    response = s3_client.get_object(Bucket=bucket_name, Key="test.txt")
+    response = s3_client.get_object(Bucket=bucket_name, Key=f"{object_key}")
     logging.info(response)
     data = response['Body'].read().decode("utf-8")
     return data
@@ -116,4 +118,6 @@ def write_test_data_to_source_supplier_bucket(data, task_arn):
     bucket_name = retrieve_bucket_name(task_arn, location_arn_key="SourceLocationArn")
 
     s3_client = boto3.client('s3', region_name=REGION)
-    s3_client.put_object(Body=bytearray(data, encoding="utf-8"), Bucket=bucket_name, Key="test.txt")
+    object_key = f"{uuid.uuid4()}.txt"
+    s3_client.put_object(Body=bytearray(data, encoding="utf-8"), Bucket=bucket_name, Key=object_key)
+    return object_key
