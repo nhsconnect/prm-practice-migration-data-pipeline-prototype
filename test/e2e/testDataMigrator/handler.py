@@ -8,6 +8,8 @@ REGION = "eu-west-2"
 
 def test_migrator(event, context):
     try:
+        root = logging.getLogger()
+        root.setLevel(logging.INFO)
         task_arn = event["TaskArn"]
         target_bucket_role_arn = event["TargetBucketAccessRoleArn"]
         source_data = "test"
@@ -76,8 +78,10 @@ def retrieve_bucket_name(task_arn, location_arn_key):
 
 def read_test_data_from_target_supplier_bucket(task_arn, role_arn):
     bucket_name = retrieve_bucket_name(task_arn, location_arn_key="DestinationLocationArn")
+    logging.info(f'Target bucket name: {bucket_name}')
 
     credentials = assume_role(role_arn)
+    logging.info(f'Assumed role: {role_arn}')
 
     s3_client = boto3.client(
         's3',
