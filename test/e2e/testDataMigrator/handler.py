@@ -9,30 +9,29 @@ REGION = "eu-west-2"
 def test_migrator(event, context):
     try:
         task_arn = event["TaskArn"]
+        target_bucket_role_arn = event["TargetBucketAccessRoleArn"]
         source_data = "test"
+
         write_test_data_to_source_supplier_bucket(source_data, task_arn)
 
         transfer_files(task_arn)
 
-        target_data = read_test_data_from_target_supplier_bucket(task_arn)
+        target_data = read_test_data_from_target_supplier_bucket(task_arn, target_bucket_role_arn)
 
         if source_data != target_data:
             return {
                 "statusCode": 500,
                 "body": f"Data written ({source_data}) does not match data read ({target_data})"
             }
-
         return {
             "statusCode": 200,
             "body": f"Data written matches data read"
         }
-
     except ClientError as e:
         logging.error(e)
         return {
             "statusCode": 500
         }
-
     except KeyError as e:
         logging.error(e)
         return {
@@ -45,6 +44,17 @@ def extract_name_from_bucket_uri(location_uri):
     bucket_name = location_uri[1].replace("/", "")
 
     return bucket_name
+
+
+def assume_role(role_arn):
+    sts_client = boto3.client('sts')
+    assumed_role_object = sts_client.assume_role(
+        RoleArn=role_arn,
+        RoleSessionName="AssumeRoleTargetAccount"
+    )
+    credentials = assumed_role_object['Credentials']
+
+    return credentials
 
 
 def retrieve_bucket_name(task_arn, location_arn_key):
@@ -64,9 +74,19 @@ def retrieve_bucket_name(task_arn, location_arn_key):
     return bucket_name
 
 
-def read_test_data_from_target_supplier_bucket(task_arn):
+def read_test_data_from_target_supplier_bucket(task_arn, role_arn):
     bucket_name = retrieve_bucket_name(task_arn, location_arn_key="DestinationLocationArn")
-    s3_client = boto3.client('s3', region_name=REGION)
+
+    credentials = assume_role(role_arn)
+
+    s3_client = boto3.client(
+        's3',
+        region_name=REGION,
+        aws_access_key_id=credentials['AccessKeyId'],
+        aws_secret_access_key=credentials['SecretAccessKey'],
+        aws_session_token=credentials['SessionToken']
+    )
+
     response = s3_client.get_object(Bucket=bucket_name, Key="test.txt")
     logging.info(response)
     data = response['Body'].read().decode("utf-8")
