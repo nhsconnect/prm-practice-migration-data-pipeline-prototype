@@ -14,14 +14,19 @@ These instructions assume you are using:
 To run the terraform locally, run the following commands:
 
 1. Set your AWS Credentials
-   ```
+   ```bash
    eval $(assume-role ci)
    ```
-1. Invoke terraform locally
-
+2. Set the NHS environment variables and target region
+   ```bash
+   export NHS_ENVIRONMENT=test
+   export NHS_SERVICE=practice-migration
+   export AWS_DEFAULT_REGION=eu-west-2
    ```
-     ./tasks tf_plan create
-     ./tasks tf_apply
+3. Invoke terraform locally
+   ```bash
+   ./tasks tf_plan create
+   ./tasks tf_apply
    ```
 
 ## End-to-end test lambda
