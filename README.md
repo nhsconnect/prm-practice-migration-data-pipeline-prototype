@@ -74,10 +74,18 @@ To invoke the lambda locally, first set your AWS credentials in the terminal (be
 eval $(assume-role ci)
 ```
 
-Once your python environment is setup, the lambda can be invoked locally by running:
+Once your python environment is setup, the lambda can be invoked locally:
+
+First, cd to the `test/e2e/testDataMigrator/` directory. Then, set the following environment variables:
 
 ```bash
-npx sls invoke local --function testMigrator --data '{"TaskArn": "arn:aws:datasync:eu-west-2:<task-account-id>:task/task-<task-id>", "TargetBucketAccessRoleArn": "arn:aws:iam::<target-bucket-account-id>:role/<target-role-name>"}'
+export TASK_ACCOUNT_ID= #Your task account id.
+export TASK_ID= #The id of the task you are testing.
+export TARGET_ACCOUNT_ROLE_ARN= #The ARN of the role within the target account that should be assumed.
 ```
 
-from the `test/e2e/testDataMigrator/` directory (replace the account IDs, task ID and role name with the appropriate values).
+Then, execute the test by running:
+
+```bash
+npx sls invoke local --function testMigrator --data "{\"TaskArn\": \"arn:aws:datasync:eu-west-2:${TASK_ACCOUNT_ID}:task/task-${TASK_ID}\", \"TargetBucketAccessRoleArn\": \"${TARGET_ACCOUNT_ROLE_ARN}\"}"
+```
