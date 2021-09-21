@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "noImplicitAny": true,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    "lib": ["es2019"],
+    "esModuleInterop": true,
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "outDir": "./dist",
+    "experimentalDecorators": true,
+    "target": "ES5",
+    "downlevelIteration": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "moduleResolution": "node",
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx"
+  },
+  "include": ["./src"],
+  "exclude": ["node_modules", "scripts", "**/__tests__/**" , "**/*.test.*",]
+}
