@@ -1,5 +1,6 @@
 import json
 import boto3
+import logging
 
 def lambda_handler(event, context):
     client = boto3.client('ec2')
@@ -32,6 +33,7 @@ def lambda_handler(event, context):
                 instance_id
             ]
         )
+        logging.info(f'Stopped instance: {instance_id}')
 
     return {
         'statusCode': 200
