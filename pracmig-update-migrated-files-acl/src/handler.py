@@ -3,7 +3,6 @@ import json
 import base64
 import re
 import boto3
-import os
 import logging
 
 s3 = boto3.resource('s3')
@@ -11,24 +10,17 @@ ds = boto3.client('datasync')
 task_id = '<task-id-here>'
 
 def lambda_handler(event, context):
-    
+
     master_session = boto3.session.Session()
     s3 = master_session.client('s3')
-    
+
     # Capture and convert the cloudwatch logs into text
-    cw_data = event['awslogs']['data']
-    compressed_payload = base64.b64decode(cw_data)
-    uncompressed_payload = gzip.decompress(compressed_payload)
-    payload = json.loads(uncompressed_payload)
-    log_events = payload['logEvents']
-    
+    log_events = get_cloud_watch_log_events(event)
+
     logging.info(log_events)
-    
+
     # Use the task to identify source and target locations
-    allTasks = ds.list_tasks()
-    for tasks in allTasks['Tasks']:
-        if re.search(r'.*\/(.*)',tasks['TaskArn']).group(1) == task_id:
-            taskARN = tasks['TaskArn']
+    taskARN = get_task_arn(task_id)
     taskInfo = ds.describe_task(TaskArn=taskARN)
     sourceARN = taskInfo['SourceLocationArn']
     targetARN = taskInfo['DestinationLocationArn']
@@ -66,3 +58,18 @@ def lambda_handler(event, context):
         'statusCode': 200,
         'body': json.dumps('Hello from Lambda!')
     }
+
+def get_task_arn(datasync_task_id):
+    allTasks = ds.list_tasks()
+    for tasks in allTasks['Tasks']:
+        if re.search(r'.*\/(.*)',tasks['TaskArn']).group(1) == datasync_task_id:
+            taskARN = tasks['TaskArn']
+    return taskARN
+
+def get_cloud_watch_log_events(event):
+    cw_data = event['awslogs']['data']
+    compressed_payload = base64.b64decode(cw_data)
+    uncompressed_payload = gzip.decompress(compressed_payload)
+    payload = json.loads(uncompressed_payload)
+    log_events = payload['logEvents']
+    return log_events
