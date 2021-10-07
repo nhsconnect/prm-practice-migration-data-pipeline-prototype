@@ -4,8 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+boto3 = "~=1.18.56"
 
 [dev-packages]
+pytest = "~=6.2.5"
+moto = "~=2.2.8"
 
 [requires]
 python_version = "3.8"
