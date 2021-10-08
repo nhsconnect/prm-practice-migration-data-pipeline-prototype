@@ -13,20 +13,14 @@ def lambda_handler(event, context):
     master_session = boto3.session.Session()
     s3 = master_session.client('s3')
 
-    # Capture and convert the cloudwatch logs into text
     log_events = get_cloud_watch_log_events(event)
-
-    logging.info(log_events)
 
     # Use the task to identify source and target locations
     taskARN = os.environ['TASK_ARN']
     taskInfo = ds.describe_task(TaskArn=taskARN)
-    sourceARN = taskInfo['SourceLocationArn']
     targetARN = taskInfo['DestinationLocationArn']
     allLocations = ds.list_locations()
     for locs in allLocations['Locations']:
-        if locs['LocationArn'] == sourceARN:
-            source_loc = locs['LocationUri'].rstrip('/')
         if locs['LocationArn'] == targetARN:
             full_target = locs['LocationUri'][5:]
             targetElements = full_target.split('/', 1)
@@ -39,7 +33,6 @@ def lambda_handler(event, context):
             regexp = re.compile(r'(\/.*)+\,')
             m = regexp.search(fileEvent)
             fileLoc = m.group().rstrip(',')
-            source = source_loc + fileLoc
             key = prefix + fileLoc[1:]
 
             s3.put_object_acl(
