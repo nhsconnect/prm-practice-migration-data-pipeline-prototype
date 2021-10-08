@@ -38,7 +38,7 @@ def lambda_handler(event, context):
             fileEvent = log_event['message']
             regexp = re.compile(r'(\/.*)+\,')
             m = regexp.search(fileEvent)
-            fileLoc = m.group().rstrip('\,')
+            fileLoc = m.group().rstrip(',')
             source = source_loc + fileLoc
             key = prefix + fileLoc[1:]
 
