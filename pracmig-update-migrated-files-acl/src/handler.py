@@ -17,29 +17,11 @@ def lambda_handler(event, context):
 
     # Use the task to identify source and target locations
     taskARN = os.environ['TASK_ARN']
-    taskInfo = ds.describe_task(TaskArn=taskARN)
-    targetARN = taskInfo['DestinationLocationArn']
-    allLocations = ds.list_locations()
-    for locs in allLocations['Locations']:
-        if locs['LocationArn'] == targetARN:
-            full_target = locs['LocationUri'][5:]
-            targetElements = full_target.split('/', 1)
-            target_loc = targetElements[0]
-            prefix = targetElements[1]
+    destination_bucket_name, destination_path = destination_details(taskARN)
 
     try:
         for log_event in log_events:
-            fileEvent = log_event['message']
-            regexp = re.compile(r'(\/.*)+\,')
-            m = regexp.search(fileEvent)
-            fileLoc = m.group().rstrip(',')
-            key = prefix + fileLoc[1:]
-
-            s3.put_object_acl(
-                ACL='bucket-owner-full-control',
-                Bucket=target_loc,
-                Key=key,
-            )
+            update_acl(s3, destination_bucket_name, destination_path, log_event)
     except Exception as e:
         logging.error("Error putting ACL: %s", e)
         return {
@@ -47,9 +29,40 @@ def lambda_handler(event, context):
         }
 
     return {
-        'statusCode': 200,
-        'body': json.dumps('Hello from Lambda!')
+        'statusCode': 200
     }
+
+def update_acl(s3, destination_bucket_name, destination_path, log_event):
+    file_event = log_event['message']
+    regexp = re.compile(r'(\/.*)+\,')
+    m = regexp.search(file_event)
+    file_path = m.group().rstrip(',')
+    key = destination_path + file_path[1:]
+
+    s3.put_object_acl(
+                ACL='bucket-owner-full-control',
+                Bucket=destination_bucket_name,
+                Key=key,
+            )
+
+def destination_details(taskARN):
+    destination_uri = destination_location_uri(taskARN)
+
+    S3_URI_PREFIX_LEN = 5 # prefix = "s3://"
+    destination_uri_path = destination_uri[S3_URI_PREFIX_LEN:]
+    destination_segments = destination_uri_path.split('/', 1)
+    destination_bucket_name = destination_segments[0]
+    destination_root_path = destination_segments[1]
+    return destination_bucket_name,destination_root_path
+
+def destination_location_uri(taskARN):
+    taskInfo = ds.describe_task(TaskArn=taskARN)
+    targetARN = taskInfo['DestinationLocationArn']
+    allLocations = ds.list_locations()
+    for locations in allLocations['Locations']:
+        if locations['LocationArn'] == targetARN:
+            destination_location_uri = locations['LocationUri']
+    return destination_location_uri
 
 
 def get_cloud_watch_log_events(event):
