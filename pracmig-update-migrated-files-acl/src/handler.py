@@ -9,15 +9,30 @@ import logging
 s3 = boto3.resource('s3')
 ds = boto3.client('datasync')
 
+
 def lambda_handler(event, context):
+    try:
+        log_events = get_cloud_watch_log_events(event)
+    except Exception as e:
+        logging.error("Error extracting logs: %s", e)
+        return {
+            'statusCode': 500,
+            'body': f'Error putting ACL: { e }'
+        }
+
     master_session = boto3.session.Session()
     s3 = master_session.client('s3')
 
-    log_events = get_cloud_watch_log_events(event)
-
-    # Use the task to identify source and target locations
-    taskARN = os.environ['TASK_ARN']
-    destination_bucket_name, destination_path = destination_details(taskARN)
+    try:
+        # Use the task to identify source and target locations
+        taskARN = os.environ['TASK_ARN']
+        destination_bucket_name, destination_path = destination_details(taskARN)
+    except Exception as e:
+        logging.error("Error getting destination details: %s", e)
+        return {
+            'statusCode': 500,
+            'body': f'Error getting destination details: { e }'
+        }
 
     try:
         for log_event in log_events:
@@ -25,12 +40,14 @@ def lambda_handler(event, context):
     except Exception as e:
         logging.error("Error putting ACL: %s", e)
         return {
-            'statusCode': 500
+            'statusCode': 500,
+            'body': f'Error putting ACL: { e }'
         }
 
     return {
         'statusCode': 200
     }
+
 
 def update_acl(s3, destination_bucket_name, destination_path, log_event):
     file_event = log_event['message']
@@ -40,10 +57,11 @@ def update_acl(s3, destination_bucket_name, destination_path, log_event):
     key = destination_path + file_path[1:]
 
     s3.put_object_acl(
-                ACL='bucket-owner-full-control',
-                Bucket=destination_bucket_name,
-                Key=key,
-            )
+        ACL='bucket-owner-full-control',
+        Bucket=destination_bucket_name,
+        Key=key,
+    )
+
 
 def destination_details(taskARN):
     destination_uri = destination_location_uri(taskARN)
@@ -54,6 +72,7 @@ def destination_details(taskARN):
     destination_bucket_name = destination_segments[0]
     destination_root_path = destination_segments[1]
     return destination_bucket_name,destination_root_path
+
 
 def destination_location_uri(taskARN):
     taskInfo = ds.describe_task(TaskArn=taskARN)
