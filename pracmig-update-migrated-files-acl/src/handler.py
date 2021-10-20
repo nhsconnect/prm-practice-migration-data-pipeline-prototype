@@ -25,7 +25,7 @@ def lambda_handler(event, context):
 
     try:
         # Use the task to identify source and target locations
-        taskARN = os.environ['TASK_ARN']
+        taskARN = task_arn()
         destination_bucket_name, destination_path = destination_details(taskARN)
     except Exception as e:
         logging.error("Error getting destination details: %s", e)
@@ -47,6 +47,14 @@ def lambda_handler(event, context):
     return {
         'statusCode': 200
     }
+
+def task_arn():
+    try:
+        task_arn = os.environ['TASK_ARN']
+        return task_arn
+    except Exception as e:
+        logging.error("'TASK_ARN' environment variable is not set")
+        raise Exception('Lambda is incorrectly configured')
 
 
 def update_acl(s3, destination_bucket_name, destination_path, log_event):
@@ -75,7 +83,11 @@ def destination_details(taskARN):
 
 
 def destination_location_uri(taskARN):
-    taskInfo = ds.describe_task(TaskArn=taskARN)
+    try:
+        taskInfo = ds.describe_task(TaskArn=taskARN)
+    except Exception as e:
+        logging.error("Error describing task: '%s'", taskARN)
+        raise Exception('Task does not exist')
     targetARN = taskInfo['DestinationLocationArn']
     allLocations = ds.list_locations()
     for locations in allLocations['Locations']:
