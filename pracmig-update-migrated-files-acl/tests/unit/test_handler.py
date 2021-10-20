@@ -73,7 +73,7 @@ def test_handler_gracefully_fails_with_bad_log(monkeypatch, fixture):
 
 
 @set_initial_no_auth_action_count(sys.maxsize)
-def test_handler_gracefully_fails_when_target_bucket_missing(monkeypatch, fixture):
+def test_handler_gracefully_fails_when_task_references_non_existent_target_bucket(monkeypatch, fixture):
     with mock_datasync(), mock_s3():
         s3 = boto3.client('s3')
         s3.create_bucket(Bucket=DESTINATION_BUCKET_NAME, CreateBucketConfiguration={
@@ -92,19 +92,31 @@ def test_handler_gracefully_fails_when_target_bucket_missing(monkeypatch, fixtur
 
         assert res == {
             'statusCode': 500,
-            'body': 'Error putting ACL: An error occurred (NoSuchBucket) when calling the PutObjectAcl operation: '
-                    'The specified bucket does not exist'
+            'body': 'Error updating object ACL: Lambda is incorrectly configured'
+        }
+        assert False
+
+
+@set_initial_no_auth_action_count(sys.maxsize)
+def test_handler_gracefully_fails_when_task_arn_is_not_set(monkeypatch, fixture):
+    with mock_datasync(), mock_s3():
+        log_events_payload = {
+            "awslogs": {
+                "data": LOG_DATA_GZIP_BASE64_ENCODED
+            }
+        }
+        res = lambda_handler(log_events_payload, {})
+
+        assert res == {
+            'statusCode': 500,
+            'body': 'Error getting destination details: Lambda is incorrectly configured'
         }
 
 
 @set_initial_no_auth_action_count(sys.maxsize)
-def test_handler_gracefully_fails_when_task_missing(monkeypatch, fixture):
+def test_handler_gracefully_fails_when_specified_task_does_not_exist(monkeypatch, fixture):
     with mock_datasync(), mock_s3():
-        s3 = boto3.client('s3')
-        s3.create_bucket(Bucket=DESTINATION_BUCKET_NAME, CreateBucketConfiguration={
-            'LocationConstraint': 'eu-west-2'
-        })
-        s3.put_object(Body='test', Bucket=DESTINATION_BUCKET_NAME, Key=TRANSFERRED_OBJECT_KEY)
+        monkeypatch.setenv('TASK_ARN', 'arn:aws:datasync:eu-west-2:0123456789012:task/task-01234567890123456')
 
         log_events_payload = {
             "awslogs": {
@@ -115,7 +127,7 @@ def test_handler_gracefully_fails_when_task_missing(monkeypatch, fixture):
 
         assert res == {
             'statusCode': 500,
-            'body': 'Error getting destination details: \'TASK_ARN\''
+            'body': 'Error getting destination details: Task does not exist'
         }
 
 

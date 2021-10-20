@@ -38,7 +38,7 @@ def lambda_handler(event, context):
         for log_event in log_events:
             update_acl(s3, destination_bucket_name, destination_path, log_event)
     except Exception as e:
-        logging.error("Error putting ACL: %s", e)
+        logging.error("Error updating object ACL: %s", e)
         return {
             'statusCode': 500,
             'body': f'Error putting ACL: { e }'
@@ -64,11 +64,17 @@ def update_acl(s3, destination_bucket_name, destination_path, log_event):
     file_path = m.group().rstrip(',')
     key = destination_path + file_path[1:]
 
-    s3.put_object_acl(
-        ACL='bucket-owner-full-control',
-        Bucket=destination_bucket_name,
-        Key=key,
-    )
+    try:
+        s3.put_object_acl(
+            ACL='bucket-owner-full-control',
+            Bucket=destination_bucket_name,
+            Key=key,
+        )
+    except Exception as e:
+        logging.error(
+            f"Error updating ACL for object with key '{key}'"
+            + f" in bucket '{destination_bucket_name}': %s", e)
+        raise Exception("Lambda is incorrectly configured")
 
 
 def destination_details(taskARN):
