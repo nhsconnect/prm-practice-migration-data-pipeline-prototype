@@ -41,7 +41,7 @@ def lambda_handler(event, context):
         logging.error("Error updating object ACL: %s", e)
         return {
             'statusCode': 500,
-            'body': f'Error putting ACL: { e }'
+            'body': f'Error updating object ACL: { e }'
         }
 
     return {

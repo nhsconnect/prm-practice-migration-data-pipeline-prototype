@@ -94,7 +94,6 @@ def test_handler_gracefully_fails_when_task_references_non_existent_target_bucke
             'statusCode': 500,
             'body': 'Error updating object ACL: Lambda is incorrectly configured'
         }
-        assert False
 
 
 @set_initial_no_auth_action_count(sys.maxsize)
