@@ -69,7 +69,7 @@ def test_handler_gracefully_fails_with_bad_log(monkeypatch, fixture):
         }
         res = lambda_handler(log_events_payload, {})
 
-        assert res == {'statusCode': 500, 'body': 'Error putting ACL: Incorrect padding'}
+        assert res == {'statusCode': 400, 'body': 'Error updating object ACL: Invalid data supplied'}
 
 
 @set_initial_no_auth_action_count(sys.maxsize)

@@ -16,8 +16,8 @@ def lambda_handler(event, context):
     except Exception as e:
         logging.error("Error extracting logs: %s", e)
         return {
-            'statusCode': 500,
-            'body': f'Error putting ACL: { e }'
+            'statusCode': 400,
+            'body': f'Error updating object ACL: Invalid data supplied'
         }
 
     master_session = boto3.session.Session()
