@@ -14,10 +14,9 @@ def lambda_handler(event, context):
     try:
         log_events = get_cloud_watch_log_events(event)
     except Exception as e:
-        logging.error("Error extracting logs: %s", e)
         return {
             'statusCode': 400,
-            'body': f'Error updating object ACL: Invalid data supplied'
+            'body': f'Error updating object ACL: { e }'
         }
 
     master_session = boto3.session.Session()
@@ -27,26 +26,19 @@ def lambda_handler(event, context):
         # Use the task to identify source and target locations
         taskARN = task_arn()
         destination_bucket_name, destination_path = destination_details(taskARN)
-    except Exception as e:
-        logging.error("Error getting destination details: %s", e)
-        return {
-            'statusCode': 500,
-            'body': f'Error getting destination details: { e }'
-        }
 
-    try:
         for log_event in log_events:
             update_acl(s3, destination_bucket_name, destination_path, log_event)
+
+        return {
+            'statusCode': 200
+        }
     except Exception as e:
-        logging.error("Error updating object ACL: %s", e)
         return {
             'statusCode': 500,
-            'body': f'Error updating object ACL: { e }'
+            'body': f'Error updating object ACL: {e}'
         }
 
-    return {
-        'statusCode': 200
-    }
 
 def task_arn():
     try:
@@ -58,11 +50,15 @@ def task_arn():
 
 
 def update_acl(s3, destination_bucket_name, destination_path, log_event):
-    file_event = log_event['message']
-    regexp = re.compile(r'(\/.*)+\,')
-    m = regexp.search(file_event)
-    file_path = m.group().rstrip(',')
-    key = destination_path + file_path[1:]
+    try:
+        file_event = log_event['message']
+        regexp = re.compile(r'(\/.*)+\,')
+        m = regexp.search(file_event)
+        file_path = m.group().rstrip(',')
+        key = destination_path + file_path[1:]
+    except Exception as e:
+        logging.error("Unable to extract file path from log event: %s", e)
+        raise Exception("Invalid log event received")
 
     try:
         s3.put_object_acl(
@@ -72,28 +68,28 @@ def update_acl(s3, destination_bucket_name, destination_path, log_event):
         )
     except Exception as e:
         logging.error(
-            f"Error updating ACL for object with key '{key}'"
+            f"Updating ACL failed for object with key '{key}'"
             + f" in bucket '{destination_bucket_name}': %s", e)
         raise Exception("Lambda is incorrectly configured")
 
 
 def destination_details(taskARN):
-    destination_uri = destination_location_uri(taskARN)
+    try:
+        destination_uri = destination_location_uri(taskARN)
 
-    S3_URI_PREFIX_LEN = 5 # prefix = "s3://"
-    destination_uri_path = destination_uri[S3_URI_PREFIX_LEN:]
-    destination_segments = destination_uri_path.split('/', 1)
-    destination_bucket_name = destination_segments[0]
-    destination_root_path = destination_segments[1]
-    return destination_bucket_name,destination_root_path
+        S3_URI_PREFIX_LEN = 5 # prefix = "s3://"
+        destination_uri_path = destination_uri[S3_URI_PREFIX_LEN:]
+        destination_segments = destination_uri_path.split('/', 1)
+        destination_bucket_name = destination_segments[0]
+        destination_root_path = destination_segments[1]
+        return destination_bucket_name,destination_root_path
+    except Exception as e:
+        logging.error(f"Unable to extract destination details from task: '{taskARN}'. Error: {e}")
+        raise Exception('Lambda is incorrectly configured')
 
 
 def destination_location_uri(taskARN):
-    try:
-        taskInfo = ds.describe_task(TaskArn=taskARN)
-    except Exception as e:
-        logging.error("Error describing task: '%s'", taskARN)
-        raise Exception('Task does not exist')
+    taskInfo = ds.describe_task(TaskArn=taskARN)
     targetARN = taskInfo['DestinationLocationArn']
     allLocations = ds.list_locations()
     for locations in allLocations['Locations']:
@@ -103,9 +99,13 @@ def destination_location_uri(taskARN):
 
 
 def get_cloud_watch_log_events(event):
-    cw_data = event['awslogs']['data']
-    compressed_payload = base64.b64decode(cw_data)
-    uncompressed_payload = gzip.decompress(compressed_payload)
-    payload = json.loads(uncompressed_payload)
-    log_events = payload['logEvents']
-    return log_events
+    try:
+        cw_data = event['awslogs']['data']
+        compressed_payload = base64.b64decode(cw_data)
+        uncompressed_payload = gzip.decompress(compressed_payload)
+        payload = json.loads(uncompressed_payload)
+        log_events = payload['logEvents']
+        return log_events
+    except Exception as e:
+        logging.error("Unable to extract log events: %s", e)
+        raise Exception("Invalid data supplied")

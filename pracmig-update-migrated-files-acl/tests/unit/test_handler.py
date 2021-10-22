@@ -108,7 +108,7 @@ def test_handler_gracefully_fails_when_task_arn_is_not_set(monkeypatch, fixture)
 
         assert res == {
             'statusCode': 500,
-            'body': 'Error getting destination details: Lambda is incorrectly configured'
+            'body': 'Error updating object ACL: Lambda is incorrectly configured'
         }
 
 
@@ -126,7 +126,7 @@ def test_handler_gracefully_fails_when_specified_task_does_not_exist(monkeypatch
 
         assert res == {
             'statusCode': 500,
-            'body': 'Error getting destination details: Task does not exist'
+            'body': 'Error updating object ACL: Lambda is incorrectly configured'
         }
 
 
