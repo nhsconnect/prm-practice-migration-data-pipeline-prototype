@@ -15,7 +15,7 @@ LOG_DATA_GZIP_BASE64_ENCODED = "H4sIAAAAAAAAADWQSU/DMBCF/0rkc0O9L71VECoOwKEVlypC
                                "+jB9slL4leONUjciAokIVRoCjlcoMoxVaRmpjmYGleag0yz4XgIlXdTdOPw7LoI" \
                                "PqDVHk3eVr1r8wgh5ifwrnFQ543rIKDy52JxgiHOvTfk6hlXMs4pZ0ZyIzWWXGsh" \
                                "CBNKaqIp4UZwjYVhOkXCVGpJGWFcscQQXXpItH3KRiQ1ilEqOZFi8f+otH7/9r57" \
-                               "eSzK7OMPJpthsuUM+BAvcZHx7HBNFbqX92+m9ifbYgEAAA== "
+                               "eSzK7OMPJpthsuUM+BAvcZHx7HBNFbqX92+m9ifbYgEAAA=="
 
 
 @pytest.fixture
