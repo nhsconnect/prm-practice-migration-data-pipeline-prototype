@@ -24,8 +24,8 @@ def lambda_handler(event, context):
 
     try:
         # Use the task to identify source and target locations
-        taskARN = task_arn()
-        destination_bucket_name, destination_path = destination_details(taskARN)
+        task_arn = get_task_arn()
+        destination_bucket_name, destination_path = destination_details(task_arn)
 
         for log_event in log_events:
             update_acl(s3, destination_bucket_name, destination_path, log_event)
@@ -40,7 +40,7 @@ def lambda_handler(event, context):
         }
 
 
-def task_arn():
+def get_task_arn():
     try:
         task_arn = os.environ['TASK_ARN']
         return task_arn
@@ -73,9 +73,9 @@ def update_acl(s3, destination_bucket_name, destination_path, log_event):
         raise Exception("Lambda is incorrectly configured")
 
 
-def destination_details(taskARN):
+def destination_details(task_arn):
     try:
-        destination_uri = destination_location_uri(taskARN)
+        destination_uri = destination_location_uri(task_arn)
 
         S3_URI_PREFIX_LEN = 5 # prefix = "s3://"
         destination_uri_path = destination_uri[S3_URI_PREFIX_LEN:]
@@ -84,7 +84,7 @@ def destination_details(taskARN):
         destination_root_path = destination_segments[1]
         return destination_bucket_name,destination_root_path
     except Exception as e:
-        logging.error(f"Unable to extract destination details from task: '{taskARN}'. Error: {e}")
+        logging.error(f"Unable to extract destination details from task: '{task_arn}'. Error: {e}")
         raise Exception('Lambda is incorrectly configured')
 
 
