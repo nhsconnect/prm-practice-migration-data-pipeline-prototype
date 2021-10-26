@@ -75,7 +75,7 @@ def update_acl(s3, destination_bucket_name, destination_path, log_event):
 
 def destination_details(task_arn):
     try:
-        destination_uri = destination_location_uri(task_arn)
+        destination_uri = get_destination_location_uri(task_arn)
 
         S3_URI_PREFIX_LEN = 5 # prefix = "s3://"
         destination_uri_path = destination_uri[S3_URI_PREFIX_LEN:]
@@ -88,12 +88,12 @@ def destination_details(task_arn):
         raise Exception('Lambda is incorrectly configured')
 
 
-def destination_location_uri(taskARN):
-    taskInfo = ds.describe_task(TaskArn=taskARN)
-    targetARN = taskInfo['DestinationLocationArn']
+def get_destination_location_uri(task_arn):
+    taskInfo = ds.describe_task(TaskArn=task_arn)
+    destination_location_arn = taskInfo['DestinationLocationArn']
     allLocations = ds.list_locations()
     for locations in allLocations['Locations']:
-        if locations['LocationArn'] == targetARN:
+        if locations['LocationArn'] == destination_location_arn:
             destination_location_uri = locations['LocationUri']
     return destination_location_uri
 
