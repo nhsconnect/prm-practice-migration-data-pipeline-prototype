@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create a DataSync Task
+Parameters:
+  # ActivationKey:
+  #   Description: "The activation key of the activated DataSync agent"
+  #   Type: String
+  # SourceNfsServer:
+  #   Description: "The hostname or IP address of the source NFS server"
+  #   Type: String
+  # SourceNfsPath:
+  #   Description: "The path to copy data from on the source NFS server"
+  #   Type: String
+  #   Default: "/"
+  TargetS3BucketArn:
+    Description: "The ARN of the S3 Bucket to use for the target location"
+    Type: String
+  TargetS3BucketAccessRoleArn:
+    Description: "The ARN of the role for DataSync to assume when accessing the target bucket"
+    Type: String
+  TargetS3BucketSubdirectory:
+    Default: "/"
+    Description: "The path to copy data to on the target S3 bucket"
+    Type: String
+  # LogGroupArn:
+  #   Description: "The ARN of the CloudWatch log group that DataSync will log to"
+  #   Type: String
+
+Resources:
+  TargetLocation:
+    Type: AWS::DataSync::LocationS3
+    Properties:
+      S3BucketArn: !Ref TargetS3BucketArn
+      S3Config:
+        BucketAccessRoleArn: !Ref TargetS3BucketAccessRoleArn
+      S3StorageClass: STANDARD
+      Subdirectory: !Ref TargetS3BucketSubdirectory
