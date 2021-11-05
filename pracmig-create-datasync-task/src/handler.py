@@ -3,7 +3,7 @@ from crhelper import CfnResource
 import logging
 import os
 from urllib.parse import urlparse, parse_qs
-import requests
+from http.client import HTTPConnection
 
 
 logger = logging.getLogger(__name__)
@@ -29,15 +29,16 @@ def create(event, context):
         key = ""
         if event["RequestType"] in ["Create", "Update"]:
             logger.info(f'Requesting Activation Key: http://{AGENT_IP}/?activationRegion=eu-west-2')
-            res = requests.get(f'http://{AGENT_IP}/?activationRegion=eu-west-2', timeout=2)
-            res.raise_for_status()
-            key = parse_qs(urlparse(res.history[1].url).query)['activationKey'][0]
+            connection = HTTPConnection(AGENT_IP, 80, timeout=2)
+            connection.request('GET', "/?activationRegion=eu-west-2")
+            response = connection.getresponse()
+            key = parse_qs(urlparse(response.getheader("Location")).query)['activationKey'][0]
         # Items stored in helper.Data will be saved 
         # as outputs in your resource in CloudFormation
         helper.Data.update({"ActivationKey": key})
         return "DataSyncActivationKey"
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Unable to activate agent", exc_info=1)
+    except Exception as e:
+        logger.error(f"Unable to activate agent {e}", exc_info=1)
         raise
 
 

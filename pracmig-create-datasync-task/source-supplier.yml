@@ -165,4 +165,4 @@ Outputs:
     Description: DataSync agent activation key
     Value: !GetAtt DataSyncActivationKey.ActivationKey
     Export:
-      Name: !Join [ ":", [ !Ref "AWS::StackName", DataSyncActivationKey ] ]
+      Name: !Join [":", [!Ref "AWS::StackName", DataSyncActivationKey]]
