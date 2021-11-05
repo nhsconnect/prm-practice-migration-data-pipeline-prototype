@@ -52,7 +52,7 @@ Resources:
                   raise
       Handler: index.handler
       Role: !GetAtt ActivationKeyFetcherRole.Arn
-      Runtime: python3.6 # version of python that still have vendored requests lib
+      Runtime: python3.9
       Environment:
         Variables:
           AGENT_IP: !GetAtt DataSyncEC2Agent.PrivateIp
