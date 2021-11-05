@@ -13,6 +13,8 @@ requests = "*"
 pytest = "~=6.2.5"
 moto = "~=2.2.8"
 mock = "*"
+pyhamcrest = "*"
+crhelper = "*"
 
 [requires]
 python_version = "3.8"

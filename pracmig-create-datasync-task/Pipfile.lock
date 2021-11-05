@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "2adf011cd7b551afcf07f9414110f1392337ad44c61afbde49a14c80f3e0aea4"
+            "sha256": "f5e52754d2ebcbc14316add05e48afb966e3aabebfc364b019470204ba2b87c8"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -207,6 +207,14 @@
             "markers": "python_version >= '3'",
             "version": "==2.0.7"
         },
+        "crhelper": {
+            "hashes": [
+                "sha256:1ed61609dd81439b5f3f5e716e690604f8535b9f640149342ef3a89c8e0ab7bd",
+                "sha256:8f05516ca8b7a340fbaedbc1a463e2cb8d53c0670cd2f7723c8b8098c65bf27d"
+            ],
+            "index": "pypi",
+            "version": "==2.0.10"
+        },
         "cryptography": {
             "hashes": [
                 "sha256:07bb7fbfb5de0980590ddfc7f13081520def06dc9ed214000ad4372fb4e3c7f6",
@@ -381,11 +389,11 @@
         },
         "py": {
             "hashes": [
-                "sha256:21b81bda15b66ef5e1a777a21c4dcd9c20ad3efd0b3f817e7a809035269e1bd3",
-                "sha256:3b80836aa6d1feeaa108e046da6423ab8f6ceda6468545ae8d02d9d58d18818a"
+                "sha256:51c75c4126074b472f746a24399ad32f6053d1b34b68d2fa41e558e6f4a98719",
+                "sha256:607c53218732647dff4acdfcd50cb62615cedf612e72d1724fb1a0cc6405b378"
             ],
-            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
-            "version": "==1.10.0"
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'",
+            "version": "==1.11.0"
         },
         "pycparser": {
             "hashes": [
@@ -394,6 +402,14 @@
             ],
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
             "version": "==2.20"
+        },
+        "pyhamcrest": {
+            "hashes": [
+                "sha256:412e00137858f04bde0729913874a48485665f2d36fe9ee449f26be864af9316",
+                "sha256:7ead136e03655af85069b6f47b23eb7c3e5c221aa9f022a4fbb499f5b7308f29"
+            ],
+            "index": "pypi",
+            "version": "==2.0.2"
         },
         "pyparsing": {
             "hashes": [
