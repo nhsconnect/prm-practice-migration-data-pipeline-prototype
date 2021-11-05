@@ -1,0 +1,161 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create a Source Supplier DataSync Agent
+
+Resources:
+  DataSyncEC2Agent:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: "ami-02f47b11d24f08157"
+      InstanceType: m5.large
+      SubnetId: !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !GetAtt DataSyncEC2AgentSecurityGroup.GroupId
+  DataSyncEC2AgentSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allow the activation key-fetching lambda to be able to fetch the key from the source agent"
+      VpcId: !Ref ActivationKeyFetcherVpc
+      SecurityGroupIngress:
+        - Description: Allow ActivationKeyFetcher to retrieve ActivationKey
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 10.0.1.0/24
+
+  ActivationKeyFetcher:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          import json
+          import cfnresponse
+          import os
+          from urllib.parse import urlparse, parse_qs
+          from botocore.vendored import requests
+          import logging
+          logger = logging.getLogger(__name__)
+          logger.setLevel(logging.INFO)
+
+          def handler(event, context):
+              logging.info("REQUEST RECEIVED:\n" + json.dumps(event))
+              try:
+                  AGENT_IP = os.environ['AGENT_IP']
+                  key = {}
+                  if event["RequestType"] in ["Create", "Update"]:
+                      logger.info(f'Requesting Activation Key: http://{AGENT_IP}/?activationRegion=eu-west-2')
+                      res = requests.get(f'http://{AGENT_IP}/?activationRegion=eu-west-2', timeout=2)
+                      res.raise_for_status()
+                      key = parse_qs(urlparse(res.history[1].url).query)['activationKey'][0]
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {"ActivationKey": key})
+              except requests.exceptions.RequestException as e:
+                  logger.error(f"Unable to activate agent", exc_info=1)
+                  raise
+      Handler: index.handler
+      Role: !GetAtt ActivationKeyFetcherRole.Arn
+      Runtime: python3.6 # version of python that still have vendored requests lib
+      Environment:
+        Variables:
+          AGENT_IP: !GetAtt DataSyncEC2Agent.PrivateIp
+      VpcConfig:
+        SecurityGroupIds:
+          - !GetAtt ActivationKeyFetcherVpc.DefaultSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnet
+  ActivationKeyFetcherRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+
+  ## VPC
+  ActivationKeyFetcherVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: True
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.0.0/24
+      VpcId: !Ref ActivationKeyFetcherVpc
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.1.0/24
+      VpcId: !Ref ActivationKeyFetcherVpc
+  PrivateSubnetEIP:
+    Type: AWS::EC2::EIP
+  PrivateSubnetNatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt PrivateSubnetEIP.AllocationId
+      ConnectivityType: public
+      SubnetId: !Ref PublicSubnet
+
+  ## VPC INTERNET GATEWAY
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref ActivationKeyFetcherVpc
+
+  ## PUBLIC SUBNET ROUTING
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref ActivationKeyFetcherVpc
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGateway
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref PublicRouteTable
+  PublicRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+  ## PRIVATE SUBNET ROUTING
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref ActivationKeyFetcherVpc
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGateway
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref PrivateSubnetNatGateway
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet
+
+  DataSyncActivationKey:
+    Type: Custom::DataSyncActivationKey
+    Properties:
+      ServiceToken: !GetAtt ActivationKeyFetcher.Arn
+      RequestType: Create
+      ResourceType: Custom::DataSyncActivationKey
+
+Outputs:
+  DataSyncActivationKey:
+    Description: DataSync agent activation key
+    Value: !GetAtt DataSyncActivationKey.ActivationKey
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", DataSyncActivationKey ] ]

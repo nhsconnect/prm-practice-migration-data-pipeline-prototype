@@ -1,0 +1,18 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+boto3 = "~=1.18.56"
+cfnresponse = "*"
+botocore = "*"
+requests = "*"
+
+[dev-packages]
+pytest = "~=6.2.5"
+moto = "~=2.2.8"
+mock = "*"
+
+[requires]
+python_version = "3.8"
