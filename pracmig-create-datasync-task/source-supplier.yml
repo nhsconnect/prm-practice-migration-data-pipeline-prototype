@@ -153,6 +153,13 @@ Resources:
       RequestType: Create
       ResourceType: Custom::DataSyncActivationKey
 
+#  RegisterDataSyncAgent:
+#    Type: AWS::CloudFormation::Stack,
+#    Properties:
+#      TemplateURL: "<S3 URL for the template>"
+#      Parameters:
+#        DataSyncAgentActivationKey: !GetAtt DataSyncActivationKey.ActivationKey
+
 Outputs:
   DataSyncActivationKey:
     Description: DataSync agent activation key

@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Register a supplier DataSync Agent
+Parameters:
+  OdsCode:
+    Description: "The ODS Code of the practice being migrated"
+    Type: String
+  DataSyncAgentActivationKey:
+    Description: "The activation key of the DataSync Agent"
+    Type: String
+
+Resources:
+  DataSyncAgent:
+    Type: AWS::DataSync::Agent
+    Properties:
+      ActivationKey:
+        !Ref DataSyncAgentActivationKey
+      AgentName:
+        !Join ["-",["Agent", !Ref OdsCode, !Select [4,!Split ["-", !Select [2, !Split ["/", !Ref AWS::StackId]]],],],]
+
+Outputs:
+  DataSyncAgentArn:
+    Description: DataSync agent ARN
+    Value: !GetAtt DataSyncAgent.AgentArn
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", DataSyncAgentArn ] ]
