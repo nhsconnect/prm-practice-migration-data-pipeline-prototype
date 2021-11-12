@@ -1,8 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Create a DataSync Task
 Parameters:
-  ActivationKey:
-    Description: "The activation key of the activated DataSync agent (http://<AGENT_IPV4>/?activationRegion=eu-west-2)"
+  DataSyncAgentArn:
+    Description: "The ARN key of the activated DataSync agent"
     Type: String
   SourceNfsServer:
     Description: "The hostname or IP address of the source NFS server"
@@ -17,136 +17,16 @@ Parameters:
   OdsCode:
     Description: "The ODS Code of the practice being migrated"
     Type: String
-  # LogGroupArn:
-  #   Description: "The ARN of the CloudWatch log group that DataSync will log to"
-  #   Type: String
-
-# Potentially to get DataSync activate key
-#Type: AWS::CloudFormation::CustomResource
-#Properties:
-#  RequestType: Create
 
 Resources:
-  # SourceEC2Agent:
-  #   Type: AWS::EC2::Instance
-  #   Properties:
-  #     ImageId: "ami-02f47b11d24f08157"
-  #     InstanceType: m5.large
-  #     SecurityGroupIds:
-  #       - sg-0f4d3af45b935bdad #TODO: Creation of this SG should be templated
-  #       - !GetAtt AllowActivationKeyFetchingLambdaToConnectToSourceAgent.GroupId
-  #     SubnetId: !Ref SourceAgentActivationKeyFetcherSubnet
-  # AllowActivationKeyFetchingLambdaToConnectToSourceAgent:
-  #   Type: AWS::EC2::SecurityGroup
-  #   Properties:
-  #     GroupDescription: "Allow the activation key-fetching lambda to be able to fetch the key from the source agent"
-  #     SecurityGroupIngress:
-  #       - IpProtocol: tcp
-  #         FromPort: 80
-  #         ToPort: 80
-  #         CidrIp: !GetAtt SourceAgentActivationKeyFetcherSubnet.CidrIp
-
-  # SourceAgentActivationKeyFetcher:
-  #   Type: AWS::Lambda::Function
-  #   Properties:
-  #     Code:
-  #       ZipFile: |
-  #         import cfnresponse
-  #         import os
-  #         from urllib.parse import urlparse, parse_qs
-  #         from botocore.vendored import requests
-  #         import logging
-  #         logger = logging.getLogger(__name__)
-  #         logger.setLevel(logging.INFO)
-
-  #         def handler(event, context):
-  #             try:
-  #                 AGENT_IP = os.environ['AGENT_IP']
-  #                 key = {}
-  #                 if event["RequestType"] in ["Create", "Update"]:
-  #                     logger.info(f'Requesting Activation Key: http://{AGENT_IP}/?activationRegion=eu-west-2')
-  #                     res = requests.get(f'http://{AGENT_IP}/?activationRegion=eu-west-2', timeout=2)
-  #                     res.raise_for_status()
-  #                     key = parse_qs(urlparse(res.history[1].url).query)['activationKey'][0]
-  #                 elif event["RequestType"] == "Delete":
-  #                     pass
-  #                 cfnresponse.send(event, context, cfnresponse.SUCCESS, key)
-  #             except requests.exceptions.RequestException as e:
-  #                 logger.error(f"Unable to activate agent", exc_info=1)
-  #                 cfnresponse.send(event, context, cfnresponse.FAILED, key)
-  #     Handler: index.handler
-  #     Role: !GetAtt SourceAgentActivationKeyFetcherRole.Arn
-  #     Runtime: python3.6 # version of python that still have vendored requests lib
-  #     Environment:
-  #       Variables:
-  #         AGENT_IP: !GetAtt SourceEC2Agent.PublicIp
-  #     VpcConfig:
-  #       SecurityGroupIds:
-  #         - !GetAtt SourceAgentActivationKeyFetcherSecurityGroup.GroupId
-  #       SubnetIds:
-  #         - !Ref SourceAgentActivationKeyFetcherSubnet
-  # SourceAgentActivationKeyFetcherSecurityGroup:
-  #   Type: AWS::EC2::SecurityGroup
-  #   Properties:
-  #     GroupDescription: "A security group for the activation key-fetching lambda"
-  #     VpcId: !Ref SourceAgentActivationKeyFetcherVpc
-  # SourceAgentActivationKeyFetcherRole:
-  #   Type: AWS::IAM::Role
-  #   Properties:
-  #     AssumeRolePolicyDocument:
-  #       Version: "2012-10-17"
-  #       Statement:
-  #         - Action:
-  #             - sts:AssumeRole
-  #           Effect: Allow
-  #           Principal:
-  #             Service:
-  #               - lambda.amazonaws.com
-  #     ManagedPolicyArns:
-  #       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-  #       - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
-  # SourceAgentActivationKeyFetcherVpc:
-  #   Type: AWS::EC2::VPC
-  #   Properties:
-  #     CidrBlock: 10.0.0.0/28
-  #     EnableDnsSupport: False
-  # SourceAgentActivationKeyFetcherSubnet:
-  #   Type: AWS::EC2::Subnet
-  #   Properties:
-  #     CidrBlock: !GetAtt SourceAgentActivationKeyFetcherVpc.CidrBlock
-  #     VpcId: !Ref SourceAgentActivationKeyFetcherVpc
-  # DataSyncActivationKey:
-  #   Type: Custom::DataSyncActivationKey
-  #   Properties:
-  #     ServiceToken: !GetAtt SourceAgentActivationKeyFetcher.Arn
-  #     RequestType: Create
-  #     ResourceType: Custom::DataSyncActivationKey
-
-  SourceNfsAgent:
-    Type: AWS::DataSync::Agent
-    Properties:
-      ActivationKey: !Ref DataSyncActivationKey
-      AgentName:
-        !Join [
-          "-",
-          [
-            "Agent",
-            !Ref OdsCode,
-            !Select [
-              4,
-              !Split ["-", !Select [2, !Split ["/", !Ref AWS::StackId]]],
-            ],
-          ],
-        ]
   SourceNfsLocation:
     Type: AWS::DataSync::LocationNFS
     Properties:
       OnPremConfig:
         AgentArns:
-          - !Ref SourceNfsAgent
+          - !Ref DataSyncAgentArn
       ServerHostname: !Ref SourceNfsServer
       Subdirectory: !Ref SourceNfsPath
-
   TargetS3BucketAccessRole:
     Type: AWS::IAM::Role
     Properties:
@@ -198,11 +78,24 @@ Resources:
             ],
           ],
         ]
-
+  DataSyncTaskLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join [
+          "-",
+          [
+            !Ref OdsCode,
+            !Select [
+                4,
+                !Split ["-", !Select [2, !Split ["/", !Ref AWS::StackId]]],
+            ],
+          ],
+        ]
+      RetentionInDays: 60
   DataSyncTask:
     Type: AWS::DataSync::Task
     Properties:
-      #    CloudWatchLogGroupArn: String
+      CloudWatchLogGroupArn: !GetAtt DataSyncTaskLogGroup.Arn
       DestinationLocationArn: !GetAtt TargetLocation.LocationArn
       Name:
         !Join [

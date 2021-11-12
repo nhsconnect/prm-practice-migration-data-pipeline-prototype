@@ -10,6 +10,29 @@ Resources:
       SubnetId: !Ref PrivateSubnet
       SecurityGroupIds:
         - !GetAtt DataSyncEC2AgentSecurityGroup.GroupId
+  NFSServerEC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: "ami-0fc15d50d39e4503c"
+      InstanceType: t2.micro
+      SubnetId: !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !GetAtt NFSServerEC2SecurityGroup.GroupId
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          mkdir /nfs-share/
+          systemctl enable rpcbind
+          systemctl enable nfs-server
+          systemctl enable nfs-lock
+          systemctl enable nfs-idmap
+          systemctl start rpcbind
+          systemctl start nfs-server
+          systemctl start nfs-lock
+          systemctl start nfs-idmap
+          /etc/exports < "/nfs-share 0.0.0.0(rw,sync,no_root_squash,no_all_squash)"
+          systemctl restart nfs-server
+          exportfs
   DataSyncEC2AgentSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -21,69 +44,26 @@ Resources:
           FromPort: 80
           ToPort: 80
           CidrIp: 10.0.1.0/24
+  NFSServerEC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allow NFS client connections"
+      VpcId: !Ref ActivationKeyFetcherVpc
+      SecurityGroupIngress:
+        - Description: Allow NFS client connections
+          IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          CidrIp: 10.0.1.0/24
 
   ActivationKeyFetcher:
     Type: AWS::Lambda::Function
     Properties:
-      Code:
-        ZipFile: |
-          import json
-          from crhelper import CfnResource
-          import logging
-          import os
-          from urllib.parse import urlparse, parse_qs
-          from http.client import HTTPConnection
-
-
-          logger = logging.getLogger(__name__)
-          logger.setLevel(logging.INFO)
-
-
-          helper = CfnResource(
-              json_logging=False,
-              log_level='DEBUG',
-              boto_level='CRITICAL'
-          )
-
-
-          def handler(event, context):
-              helper(event, context)
-
-          @helper.create
-          def create(event, context):
-              logger.info("Create request received:\n" + json.dumps(event))
-
-              try:
-                  AGENT_IP = os.environ['AGENT_IP']
-                  key = ""
-                  if event["RequestType"] in ["Create", "Update"]:
-                      logger.info(f'Requesting Activation Key: http://{AGENT_IP}/?activationRegion=eu-west-2')
-                      connection = HTTPConnection(AGENT_IP, 80, timeout=2)
-                      connection.request('GET', "/?activationRegion=eu-west-2")
-                      response = connection.getresponse()
-                      key = parse_qs(urlparse(response.getheader("Location")).query)['activationKey'][0]
-                  # Items stored in helper.Data will be saved 
-                  # as outputs in your resource in CloudFormation
-                  helper.Data.update({"ActivationKey": key})
-                  return "DataSyncActivationKey"
-              except Exception as e:
-                  logger.error(f"Unable to activate agent {e}", exc_info=1)
-                  raise
-
-
-          @helper.update
-          def update(event, context):
-              logger.info("Update request received:\n" + json.dumps(event))
-              return "DataSyncActivationKey"
-
-
-          @helper.delete
-          def delete(event, context):
-              logger.info("Delete request received:\n" + json.dumps(event))
-
-      Handler: index.handler
+      Code: "./_build"
+      Handler: handler.handler
       Role: !GetAtt ActivationKeyFetcherRole.Arn
       Runtime: python3.9
+      Timeout: 60
       Environment:
         Variables:
           AGENT_IP: !GetAtt DataSyncEC2Agent.PrivateIp
@@ -183,13 +163,6 @@ Resources:
       ServiceToken: !GetAtt ActivationKeyFetcher.Arn
       RequestType: Create
       ResourceType: Custom::DataSyncActivationKey
-
-#  RegisterDataSyncAgent:
-#    Type: AWS::CloudFormation::Stack,
-#    Properties:
-#      TemplateURL: "<S3 URL for the template>"
-#      Parameters:
-#        DataSyncAgentActivationKey: !GetAtt DataSyncActivationKey.ActivationKey
 
 Outputs:
   DataSyncActivationKey:

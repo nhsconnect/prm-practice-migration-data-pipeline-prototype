@@ -8,13 +8,13 @@ boto3 = "~=1.18.56"
 cfnresponse = "*"
 botocore = "*"
 requests = "*"
+crhelper = "*"
 
 [dev-packages]
 pytest = "~=6.2.5"
 moto = "~=2.2.8"
 mock = "*"
 pyhamcrest = "*"
-crhelper = "*"
 
 [requires]
 python_version = "3.9"

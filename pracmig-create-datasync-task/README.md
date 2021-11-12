@@ -6,6 +6,7 @@
 - Python 3.8.12 (installed with `pyenv`)
 - `pipenv`: `pip install pipenv`
 - Install dependencies: `pipenv install --dev`
+- [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
 
 ### Running the tests
 
@@ -13,4 +14,28 @@ To run the tests from the CLI, first ensure your virtual environment is activate
 
 ### Deploy
 
-` aws cloudformation create-stack --template-body "$(cat ./source-supplier.yml)" --capabilities CAPABILITY_NAMED_IAM --timeout-in-minutes 30 --stack-name "source-supplier-37" --disable-rollback`
+#### Creating a mock DataSync Agent
+
+Build and package the activator lambda
+`./scripts/build-and-package-source-agent.sh`
+
+Deploy the mock datasync agent stack
+`./scripts/deploy-create-source-agent.sh -i <YOUR_UNIQUE_ID>`
+
+#### Registering a DataSync Agent
+
+Deploy the register agent stack
+`./scripts/deploy-register-agent.sh -o <ODS_CODE> -a <DATASYNC_AGENT_ACTIVATION_KEY> -i <YOUR_UNIQUE_ID>`
+
+#### Create a DataSync task
+
+Deploy the datasync task stack
+
+```shell
+./scripts/deploy-datasync-task.sh \
+    -o <ODS_CODE> \
+    -a <DATASYNC_AGENT_ARN> \
+    -n <SourceNfsServer>
+    -p <SourceNfsPath> \
+    -q <TargetS3BucketArn>
+```
