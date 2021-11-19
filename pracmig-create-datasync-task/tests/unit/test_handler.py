@@ -16,7 +16,16 @@ def cf_request_mock(monkeypatch):
     return request_mock
 
 
-def test_handler_sends_activation_key_to_cloud_formation_when_creating(monkeypatch, cf_request_mock):
+@pytest.fixture
+def lambda_context():
+    return Mock(
+        log_stream_name="blah",
+        get_remaining_time_in_millis=lambda: 5000
+    )
+
+
+def test_handler_sends_activation_key_to_cloud_formation_when_creating(
+        monkeypatch, cf_request_mock, lambda_context):
     activation_key = "KEY_00000"
     response_url = "/custom-resource-response-url"
     stack_id = "arn:aws:cloudformation:eu-west-2:123456789012:stack/mystack-mynestedstack-sggfrhxhum7w/f449b250-b969-11e0-a185-5081d0136786"
@@ -35,12 +44,8 @@ def test_handler_sends_activation_key_to_cloud_formation_when_creating(monkeypat
         "RequestId": request_id,
         "LogicalResourceId": logical_resource_id
     }
-    context = Mock(
-        log_stream_name="blah",
-        get_remaining_time_in_millis=lambda: 5000
-    )
 
-    handler(event, context)
+    handler(event, lambda_context)
 
     cf_request_mock.assert_called_with(
         method="PUT", url=response_url, body=ANY, headers=ANY)
@@ -55,7 +60,8 @@ def test_handler_sends_activation_key_to_cloud_formation_when_creating(monkeypat
         has_entry("Data", has_entry("ActivationKey", activation_key)))
 
 
-def test_handler_retries_activation_call(monkeypatch, cf_request_mock):
+def test_handler_retries_activation_call(
+        monkeypatch, cf_request_mock, lambda_context):
     monkeypatch.setenv("AGENT_IP", "35.179.77.230")
     mock_activation_key_request = MagicMock(side_effect=[HTTPException, None])
     mock_key_request_conn = Mock(
@@ -72,12 +78,8 @@ def test_handler_retries_activation_call(monkeypatch, cf_request_mock):
         "RequestId": "test-request-id",
         "LogicalResourceId": "test-logical-resource-id"
     }
-    context = Mock(
-        log_stream_name="blah",
-        get_remaining_time_in_millis=lambda: 5000
-    )
 
-    handler(event, context)
+    handler(event, lambda_context)
 
     assert_that(mock_activation_key_request.call_args_list, has_length(2))
     cf_request_mock.assert_called_with(
@@ -86,7 +88,8 @@ def test_handler_retries_activation_call(monkeypatch, cf_request_mock):
     assert_that(deserialised_body, has_entry("Status", "SUCCESS"))
 
 
-def test_handler_sends_failure_notification_to_cf_when_agent_ip_not_set(monkeypatch, cf_request_mock):
+def test_handler_sends_failure_notification_to_cf_when_agent_ip_not_set(
+        cf_request_mock, lambda_context):
     event = {
         "RequestType": "Create",
         "ResponseURL": f"https://aws-cloud-formation-host.com/custom-resource-response-url",
@@ -94,12 +97,8 @@ def test_handler_sends_failure_notification_to_cf_when_agent_ip_not_set(monkeypa
         "RequestId": "test-request-id",
         "LogicalResourceId": "test-logical-resource-id"
     }
-    context = Mock(
-        log_stream_name="blah",
-        get_remaining_time_in_millis=lambda: 5000
-    )
 
-    handler(event, context)
+    handler(event, lambda_context)
 
     cf_request_mock.assert_called_with(
         method="PUT", url=ANY, body=ANY, headers=ANY)
@@ -107,7 +106,8 @@ def test_handler_sends_failure_notification_to_cf_when_agent_ip_not_set(monkeypa
     assert_that(deserialised_body, has_entry("Status", "FAILED"))
 
 
-def test_handler_sends_activation_key_to_cloud_formation_when_deleting(monkeypatch, cf_request_mock):
+def test_handler_sends_activation_key_to_cloud_formation_when_deleting(
+        cf_request_mock, lambda_context):
     response_url = "/custom-resource-response-url"
     stack_id = "arn:aws:cloudformation:eu-west-2:123456789012:stack/mystack-mynestedstack-sggfrhxhum7w/f449b250-b969-11e0-a185-5081d0136786"
     request_id = "test-request-id"
@@ -119,12 +119,8 @@ def test_handler_sends_activation_key_to_cloud_formation_when_deleting(monkeypat
         "RequestId": request_id,
         "LogicalResourceId": logical_resource_id
     }
-    context = Mock(
-        log_stream_name="blah",
-        get_remaining_time_in_millis=lambda: 5000
-    )
 
-    handler(event, context)
+    handler(event, lambda_context)
 
     cf_request_mock.assert_called_with(
         method="PUT", url=response_url, body=ANY, headers=ANY)
