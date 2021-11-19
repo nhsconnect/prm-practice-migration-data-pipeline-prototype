@@ -23,6 +23,7 @@ def handler(event, context):
 
 TIMEOUT_IN_SECONDS = 3
 
+
 @helper.create
 def create(event, context):
     logger.info("Create request received:\n" + json.dumps(event))
@@ -32,11 +33,14 @@ def create(event, context):
         key = None
         while key is None:
             try:
-                connection = HTTPConnection(agent_ip, 80, timeout=TIMEOUT_IN_SECONDS)
-                logger.info(f'Requesting Activation Key: http://{agent_ip}/?activationRegion=eu-west-2')
+                connection = HTTPConnection(
+                    agent_ip, 80, timeout=TIMEOUT_IN_SECONDS)
+                logger.info(
+                    f'Requesting Activation Key: http://{agent_ip}/?activationRegion=eu-west-2')
                 connection.request('GET', "/?activationRegion=eu-west-2")
                 response = connection.getresponse()
-                key = parse_qs(urlparse(response.getheader("Location")).query)["activationKey"][0]
+                key = parse_qs(urlparse(
+                    response.getheader("Location")).query)["activationKey"][0]
             except Exception as e:
                 logger.warning(f"Connection problem: {e}", exc_info=True)
                 sleep(2)

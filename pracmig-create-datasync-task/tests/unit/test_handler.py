@@ -8,15 +8,18 @@ import json
 def test_handler_sends_activation_key_to_cloud_formation_when_creating(monkeypatch):
     activation_key = "KEY_00000"
     response_url = "/custom-resource-response-url"
-    stack_id = "arn:aws:cloudformation:eu-west-2:123456789012:stack/mystack-mynestedstack-sggfrhxhum7w/f449b250-b969-11e0-a185-5081d0136786";
+    stack_id = "arn:aws:cloudformation:eu-west-2:123456789012:stack/mystack-mynestedstack-sggfrhxhum7w/f449b250-b969-11e0-a185-5081d0136786"
     request_id = "test-request-id"
     logical_resource_id = "test-logical-resource-id"
     monkeypatch.setenv("AGENT_IP", "35.179.77.230")
     cf_request_mock = MagicMock()
-    cf_call_mock = MagicMock(return_value=Mock(request=cf_request_mock, getresponse=lambda: Mock(status=200, reason="some reason")))
+    cf_call_mock = MagicMock(return_value=Mock(
+        request=cf_request_mock, getresponse=lambda: Mock(status=200, reason="some reason")))
     monkeypatch.setattr("crhelper.utils.HTTPSConnection", cf_call_mock)
-    mock_activation_key_request = Mock(getresponse=lambda: Mock(getheader=lambda _: f"http://mock-redirect/?activationKey={activation_key}"))
-    monkeypatch.setattr("src.handler.HTTPConnection", lambda host, port, timeout: mock_activation_key_request)
+    mock_activation_key_request = Mock(getresponse=lambda: Mock(
+        getheader=lambda _: f"http://mock-redirect/?activationKey={activation_key}"))
+    monkeypatch.setattr(
+        "src.handler.HTTPConnection", lambda host, port, timeout: mock_activation_key_request)
     event = {
         "RequestType": "Create",
         "ResponseURL": f"https://aws-cloud-formation-host.com{response_url}",
@@ -31,22 +34,27 @@ def test_handler_sends_activation_key_to_cloud_formation_when_creating(monkeypat
 
     handler(event, context)
 
-    cf_request_mock.assert_called_with(method="PUT", url=response_url, body=ANY, headers=ANY)
+    cf_request_mock.assert_called_with(
+        method="PUT", url=response_url, body=ANY, headers=ANY)
     deserialised_body = json.loads(cf_request_mock.call_args.kwargs["body"])
     assert_that(deserialised_body, has_entry("Status", "SUCCESS"))
     assert_that(deserialised_body, has_entry("StackId", stack_id))
     assert_that(deserialised_body, has_entry("RequestId", request_id))
-    assert_that(deserialised_body, has_entry("LogicalResourceId", logical_resource_id))
-    assert_that(deserialised_body, has_entry("Data", has_entry("ActivationKey", activation_key)))
+    assert_that(
+        deserialised_body, has_entry("LogicalResourceId", logical_resource_id))
+    assert_that(
+        deserialised_body,
+        has_entry("Data", has_entry("ActivationKey", activation_key)))
 
 
 def test_handler_sends_activation_key_to_cloud_formation_when_deleting(monkeypatch):
     response_url = "/custom-resource-response-url"
-    stack_id = "arn:aws:cloudformation:eu-west-2:123456789012:stack/mystack-mynestedstack-sggfrhxhum7w/f449b250-b969-11e0-a185-5081d0136786";
+    stack_id = "arn:aws:cloudformation:eu-west-2:123456789012:stack/mystack-mynestedstack-sggfrhxhum7w/f449b250-b969-11e0-a185-5081d0136786"
     request_id = "test-request-id"
     logical_resource_id = "test-logical-resource-id"
     cf_request_mock = MagicMock()
-    cf_call_mock = MagicMock(return_value=Mock(request=cf_request_mock, getresponse=lambda: Mock(status=200, reason="some reason")))
+    cf_call_mock = MagicMock(return_value=Mock(
+        request=cf_request_mock, getresponse=lambda: Mock(status=200, reason="some reason")))
     monkeypatch.setattr("crhelper.utils.HTTPSConnection", cf_call_mock)
     event = {
         "RequestType": "Delete",
@@ -62,10 +70,12 @@ def test_handler_sends_activation_key_to_cloud_formation_when_deleting(monkeypat
 
     handler(event, context)
 
-    cf_request_mock.assert_called_with(method="PUT", url=response_url, body=ANY, headers=ANY)
+    cf_request_mock.assert_called_with(
+        method="PUT", url=response_url, body=ANY, headers=ANY)
     deserialised_body = json.loads(cf_request_mock.call_args.kwargs["body"])
     assert_that(deserialised_body, has_entry("Status", "SUCCESS"))
     assert_that(deserialised_body, has_entry("StackId", stack_id))
     assert_that(deserialised_body, has_entry("RequestId", request_id))
-    assert_that(deserialised_body, has_entry("LogicalResourceId", logical_resource_id))
+    assert_that(
+        deserialised_body, has_entry("LogicalResourceId", logical_resource_id))
     assert_that(deserialised_body, has_entry("Data", empty()))
