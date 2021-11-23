@@ -1,5 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Create a Source Supplier DataSync Agent
+Parameters:
+  CidrBlockAllowedAccessToBastion:
+    Description: "A CIDR block that will be allowed access to the bastion host"
+    Type: String
 
 Resources:
   DataSyncEC2Agent:
@@ -10,6 +14,14 @@ Resources:
       SubnetId: !Ref PrivateSubnet
       SecurityGroupIds:
         - !GetAtt DataSyncEC2AgentSecurityGroup.GroupId
+  BastionEC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: "ami-0c0a1cc13a52a158f"
+      InstanceType: t2.micro
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds:
+        - !GetAtt BastionEC2SecurityGroup.GroupId
   NFSServerEC2:
     Type: AWS::EC2::Instance
     Properties:
@@ -44,6 +56,17 @@ Resources:
           FromPort: 80
           ToPort: 80
           CidrIp: 10.0.1.0/24
+  BastionEC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allow access from restricted external clients"
+      VpcId: !Ref ActivationKeyFetcherVpc
+      SecurityGroupIngress:
+        - Description: Allow external SSH access to Bastion
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref CidrBlockAllowedAccessToBastion
   NFSServerEC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -99,6 +122,11 @@ Resources:
     Properties:
       CidrBlock: 10.0.0.0/24
       VpcId: !Ref ActivationKeyFetcherVpc
+  PublicSubnetEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref BastionEC2
   PrivateSubnet:
     Type: AWS::EC2::Subnet
     Properties:
