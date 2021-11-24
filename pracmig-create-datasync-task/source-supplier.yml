@@ -77,7 +77,12 @@ Resources:
       GroupDescription: "Allow NFS client connections"
       VpcId: !Ref ActivationKeyFetcherVpc
       SecurityGroupIngress:
-        - Description: Allow NFS client connections
+        - Description: Allow NFS client connections from public subnet
+          IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          CidrIp: 10.0.0.0/24
+        - Description: Allow NFS client connections from private subnet
           IpProtocol: tcp
           FromPort: 2049
           ToPort: 2049
