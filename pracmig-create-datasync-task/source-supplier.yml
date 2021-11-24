@@ -4,6 +4,9 @@ Parameters:
   CidrBlockAllowedAccessToBastion:
     Description: "A CIDR block that will be allowed access to the bastion host"
     Type: String
+  BastionKeyName:
+    Description: "The name of a key pair to enable SSH access to the bastion host"
+    Type: String
 
 Resources:
   DataSyncEC2Agent:
@@ -19,6 +22,7 @@ Resources:
     Properties:
       ImageId: "ami-0c0a1cc13a52a158f"
       InstanceType: t2.micro
+      KeyName: !Ref BastionKeyName
       SubnetId: !Ref PublicSubnet
       SecurityGroupIds:
         - !GetAtt BastionEC2SecurityGroup.GroupId
