@@ -36,7 +36,7 @@ Deploy the datasync task stack
 ./scripts/deploy-datasync-task.sh \
     -o <ODS_CODE> \
     -a <DATASYNC_AGENT_ARN> \
-    -n <SourceNfsServer>
+    -n <SourceNfsServer> \
     -p <SourceNfsPath> \
-    -q <TargetS3BucketArn>
+    -b <TargetS3BucketArn>
 ```
