@@ -14,6 +14,7 @@ Resources:
     Properties:
       ImageId: "ami-02f47b11d24f08157"
       InstanceType: m5.large
+      KeyName: !Ref BastionKeyName
       SubnetId: !Ref PrivateSubnet
       SecurityGroupIds:
         - !GetAtt DataSyncEC2AgentSecurityGroup.GroupId
@@ -31,6 +32,7 @@ Resources:
     Properties:
       ImageId: "ami-0fc15d50d39e4503c"
       InstanceType: t2.micro
+      KeyName: !Ref BastionKeyName
       SubnetId: !Ref PrivateSubnet
       SecurityGroupIds:
         - !GetAtt NFSServerEC2SecurityGroup.GroupId
@@ -55,6 +57,11 @@ Resources:
       GroupDescription: "Allow the activation key-fetching lambda to be able to fetch the key from the source agent"
       VpcId: !Ref ActivationKeyFetcherVpc
       SecurityGroupIngress:
+        - Description: Allow SSH connections from public subnet
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 10.0.0.0/24
         - Description: Allow ActivationKeyFetcher to retrieve ActivationKey
           IpProtocol: tcp
           FromPort: 80
@@ -77,6 +84,11 @@ Resources:
       GroupDescription: "Allow NFS client connections"
       VpcId: !Ref ActivationKeyFetcherVpc
       SecurityGroupIngress:
+        - Description: Allow SSH connections from public subnet
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 10.0.0.0/24
         - Description: Allow NFS client connections from public subnet
           IpProtocol: tcp
           FromPort: 2049
