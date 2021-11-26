@@ -28,6 +28,11 @@ Deploy the mock datasync agent stack
 Deploy the register agent stack
 `./scripts/deploy-register-agent.sh -o <ODS_CODE> -a <DATASYNC_AGENT_ACTIVATION_KEY>`
 
+#### Creating a mock target supplier bucket
+
+Deploy the target supplier stack
+`./scripts/deploy-target-supplier-infra.sh -n <BUCKET_NAME>`
+
 #### Create a DataSync task
 
 Deploy the datasync task stack
