@@ -1,7 +1,7 @@
 from http.client import HTTPException
 from mock.mock import ANY
 from hamcrest import *
-from src.handler import handler
+from src.agent_activator.agent_activator import handler
 from mock import Mock, MagicMock
 import json
 import pytest
@@ -55,7 +55,7 @@ def test_handler_sends_activation_key_to_cloud_formation_when_creating(
     mock_key_request_conn = Mock(getresponse=lambda: Mock(
         getheader=lambda _: f"http://mock-redirect/?activationKey={activation_key}"))
     monkeypatch.setattr(
-        "src.handler.HTTPConnection",
+        "src.agent_activator.agent_activator.HTTPConnection",
         lambda host, port, timeout: mock_key_request_conn)
 
     handler(create_event, lambda_context)
@@ -85,7 +85,7 @@ def test_handler_retries_activation_call(
             getheader=lambda _: "http://mock-redirect/?activationKey=KEY_00000"),
         request=mock_activation_key_request)
     monkeypatch.setattr(
-        "src.handler.HTTPConnection",
+        "src.agent_activator.agent_activator.HTTPConnection",
         lambda host, port, timeout: mock_key_request_conn)
 
     handler(create_event, lambda_context)

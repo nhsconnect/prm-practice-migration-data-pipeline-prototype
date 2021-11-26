@@ -104,7 +104,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Code: "./_build"
-      Handler: handler.handler
+      Handler: agent_activator.agent_activator.handler
       Role: !GetAtt ActivationKeyFetcherRole.Arn
       Runtime: python3.9
       Timeout: 60
