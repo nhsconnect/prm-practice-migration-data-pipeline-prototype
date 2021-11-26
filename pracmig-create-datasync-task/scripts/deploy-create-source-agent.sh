@@ -4,9 +4,9 @@
 while getopts c:i:k: flag
 do
     case "${flag}" in
-        c) CidrBlockAllowedAccessToBastion=${OPTARG};;
-        i) id=${OPTARG};;
-        k) BastionKeyName=${OPTARG};;
+        c) CidrBlockAllowedAccessToBastion="${OPTARG}";;
+        i) id="${OPTARG}";;
+        k) BastionKeyName="${OPTARG}";;
     esac
 done
 
@@ -14,6 +14,6 @@ aws cloudformation create-stack --template-body "$(cat ./packaged-source-supplie
   --parameters ParameterKey=CidrBlockAllowedAccessToBastion,ParameterValue="${CidrBlockAllowedAccessToBastion}" \
                ParameterKey=BastionKeyName,ParameterValue="${BastionKeyName}" \
   --timeout-in-minutes 30 \
-  --stack-name "source-supplier-$id" \
+  --stack-name "source-supplier-${id}" \
   --disable-rollback \
   --capabilities CAPABILITY_AUTO_EXPAND CAPABILITY_IAM
