@@ -1,9 +1,10 @@
 #!/bin/bash
 
 DIR=_build
+rm -rf "${DIR}/"
 
-pipenv run pip install -r <(PIPENV_VERBOSITY=-1 pipenv lock -r) --target _build/
-cp -R src/* _build
+pipenv run pip install -r <(PIPENV_VERBOSITY=-1 pipenv lock -r) --target "${DIR}/"
+cp -R src/* "${DIR}"
 
 sam package \
   --template source-supplier.yml \
