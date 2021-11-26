@@ -3,7 +3,7 @@ from crhelper import CfnResource
 import logging
 import os
 from urllib.parse import urlparse, parse_qs
-from http.client import HTTPConnection, HTTPException
+from http.client import HTTPConnection
 from time import sleep
 
 logger = logging.getLogger(__name__)
