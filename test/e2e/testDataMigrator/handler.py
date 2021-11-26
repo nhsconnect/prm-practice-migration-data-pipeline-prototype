@@ -3,6 +3,8 @@ import logging
 import polling
 from botocore.exceptions import ClientError
 import uuid
+from pyNfsClient import (Portmap, Mount, NFSv3, MNT3_OK, NFS_PROGRAM,
+                         NFS_V3, NFS3_OK, DATA_SYNC)
 
 REGION = "eu-west-2"
 
@@ -78,6 +80,21 @@ def retrieve_bucket_name(task_arn, location_arn_key):
     return bucket_name
 
 
+def retrieve_nfs_server_uri(task_arn, location_arn_key):
+    datasync_client = boto3.client('datasync', region_name=REGION)
+    task = datasync_client.describe_task(
+        TaskArn=task_arn
+    )
+
+    location_arn = task[location_arn_key]
+
+    location = datasync_client.describe_location_nfs(
+        LocationArn=location_arn
+    )
+
+    return location["LocationUri"]
+
+
 def read_test_data_from_target_supplier_bucket(task_arn, role_arn, object_key):
     bucket_name = retrieve_bucket_name(task_arn, location_arn_key="DestinationLocationArn")
     logging.info(f'Target bucket name: {bucket_name}')
@@ -121,3 +138,53 @@ def write_test_data_to_source_supplier_bucket(data, task_arn):
     object_key = f"{uuid.uuid4()}.txt"
     s3_client.put_object(Body=bytearray(data, encoding="utf-8"), Bucket=bucket_name, Key=object_key)
     return object_key
+
+def write_test_data_to_source_supplier_nfs(data, task_arn):
+    nfs_server_uri = retrieve_nfs_server_uri(task_arn, location_arn_key="SourceLocationArn")
+    host = nfs_server_uri
+    mount_path = nfs_server_uri
+
+    auth = {"flavor": 1,
+            "machine_name": "host1",
+            "uid": 0,
+            "gid": 0,
+            "aux_gid": list(),
+            }
+
+    # portmap initialization
+    portmap = Portmap(host, timeout=3600)
+    portmap.connect()
+
+    # mount initialization
+    mnt_port = portmap.getport(Mount.program, Mount.program_version)
+    mount = Mount(host=host, port=mnt_port, timeout=3600, auth=auth)
+    mount.connect()
+
+    # do mount
+    mnt_res = mount.mnt(mount_path, auth)
+    nfs3 = None
+    if mnt_res["status"] == MNT3_OK:
+        root_fh = mnt_res["mountinfo"]["fhandle"]
+        try:
+            nfs_port = portmap.getport(NFS_PROGRAM, NFS_V3)
+            # nfs actions
+            nfs3 = NFSv3(host, nfs_port, 3600, auth=auth)
+            nfs3.connect()
+            lookup_res = nfs3.lookup(root_fh, "file.txt", auth)
+            if lookup_res["status"] == NFS3_OK:
+                fh = lookup_res["resok"]["object"]["data"]
+                write_res = nfs3.write(fh, offset=0, count=11, content=data,
+                                       stable_how=DATA_SYNC, auth=auth)
+                if write_res["status"] == NFS3_OK:
+                    raise ClientError("NFS Write failed", "NFS Write")
+            else:
+                raise ClientError("NFS Lookup failed", "NFS Lookup")
+        finally:
+            if nfs3:
+                nfs3.disconnect()
+            mount.umnt(mount_path)
+            mount.disconnect()
+            portmap.disconnect()
+    else:
+        mount.disconnect()
+        portmap.disconnect()
