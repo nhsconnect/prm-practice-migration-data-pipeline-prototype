@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create a Source Supplier DataSync Agent
+Parameters:
+  BucketName:
+    Description: "The name to use for the target supplier bucket"
+    Type: String
+
+Resources:
+  TargetSupplierBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      MetricsConfigurations:
+        - Id: TargetSupplierDataBucket
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
+      VersioningConfiguration:
+        Status: Suspended
+
+Outputs:
+  TargetSupplierBucketArn:
+    Description: The ARN of the target supplier bucket
+    Value: !GetAtt TargetSupplierBucket.Arn
+    Export:
+      Name: !Join [":", [!Ref "AWS::StackName", TargetSupplierBucketArn]]
