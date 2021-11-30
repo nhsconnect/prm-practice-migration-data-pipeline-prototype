@@ -12,7 +12,7 @@ do
 done
 
 aws cloudformation create-stack \
-  --template-body "$(cat ./datasync.yml)"\
+  --template-body "$(cat ./src/templates/datasync.yml)"\
   --timeout-in-minutes 30 \
   --stack-name "datasync-migration-${OdsCode}" \
   --parameters ParameterKey=OdsCode,ParameterValue="${OdsCode}"\

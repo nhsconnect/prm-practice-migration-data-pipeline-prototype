@@ -10,7 +10,7 @@ do
     esac
 done
 
-aws cloudformation create-stack --template-body "$(cat ./packaged-source-supplier.yml)" \
+aws cloudformation create-stack --template-body "$(cat ./src/templates/packaged-source-supplier.yml)" \
   --parameters ParameterKey=CidrBlockAllowedAccessToBastion,ParameterValue="${CidrBlockAllowedAccessToBastion}" \
                ParameterKey=BastionKeyName,ParameterValue="${BastionKeyName}" \
   --timeout-in-minutes 30 \

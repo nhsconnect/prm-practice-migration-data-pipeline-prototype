@@ -8,7 +8,7 @@ do
     esac
 done
 
-aws cloudformation create-stack --template-body "$(cat ./target-supplier.yml)" \
+aws cloudformation create-stack --template-body "$(cat ./src/templates/target-supplier.yml)" \
   --stack-name "target-supplier-${bucket_name}" \
   --disable-rollback \
   --parameters ParameterKey=BucketName,ParameterValue="${bucket_name}"

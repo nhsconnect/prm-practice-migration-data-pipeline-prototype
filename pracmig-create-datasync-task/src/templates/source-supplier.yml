@@ -103,7 +103,7 @@ Resources:
   ActivationKeyFetcher:
     Type: AWS::Lambda::Function
     Properties:
-      Code: "./_build"
+      Code: "../../_build"
       Handler: agent_activator.agent_activator.handler
       Role: !GetAtt ActivationKeyFetcherRole.Arn
       Runtime: python3.9

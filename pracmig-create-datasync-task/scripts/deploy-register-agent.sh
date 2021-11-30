@@ -9,7 +9,7 @@ do
     esac
 done
 
-aws cloudformation create-stack --template-body "$(cat ./register-datasync-agent.yml)" \
+aws cloudformation create-stack --template-body "$(cat ./src/templates/register-datasync-agent.yml)" \
   --capabilities CAPABILITY_NAMED_IAM \
   --timeout-in-minutes 30 \
   --stack-name "register-datasync-agent-${ods}" \
