@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create a lambda that will test a DataSync Task
+Parameters:
+  DeploymentSubnetId:
+    Type: String
+    Description: The ID of a subnet in which to deploy the lambda;
+      must be a subnet from where it will be possible to access the
+      NFS server that the DataSync Task is configured to read from,
+      and have access to the internet so that it can read from the
+      target S3 Bucket that the DataSync Task writes to
+  DeploymentSecurityGroupId:
+    Type: String
+    Description: The ID of the security group to assign the lambda
+
+Resources:
+  DataSyncTester:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: "../../_build/datasync_tester"
+      Handler: datasync_tester.datasync_tester.handler
+      Role: !GetAtt DataSyncTesterRole.Arn
+      Runtime: python3.9
+      Timeout: 60
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref DeploymentSecurityGroupId
+        SubnetIds:
+          - !Ref DeploymentSubnetId
+  DataSyncTesterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Description: "Role to allow the datasync tester to read from the target supplier bucket"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      MaxSessionDuration: 3600
+      Policies:
+        - PolicyName: AllowDataSyncAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "datasync:DescribeLocationNfs"
+                  - "datasync:DescribeLocationS3"
+                  - "datasync:DescribeTask"
+                  - "datasync:StartTaskExecution"
+                Resource:
+                  - "arn:aws:datasync:eu-west-2:*:location/*"
+                  - "arn:aws:datasync:eu-west-2:*:task/*"
+                  - "arn:aws:datasync:eu-west-2:*:task/*/execution/*"
+              - Effect: Allow
+                Action:
+                  - "datasync:DescribeTaskExecution"
+                Resource:
+                  - "arn:aws:datasync:eu-west-2:*:task/*/execution/*"
+      RoleName:
+        !Join [
+          "-",
+          [
+            "AllowLambdaToReadFromBucket",
+            !Select [
+              4,
+              !Split ["-", !Select [2, !Split ["/", !Ref AWS::StackId]]],
+            ],
+          ],
+        ]

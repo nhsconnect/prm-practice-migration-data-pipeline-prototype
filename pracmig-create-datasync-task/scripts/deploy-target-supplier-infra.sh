@@ -1,5 +1,5 @@
 #!/bin/bash
-# Helper for registering a datasync agent
+# Helper for creating the target supplier S3 bucket
 
 while getopts n: flag
 do

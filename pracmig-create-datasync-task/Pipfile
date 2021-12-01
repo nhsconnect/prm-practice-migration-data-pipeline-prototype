@@ -9,6 +9,8 @@ cfnresponse = "*"
 botocore = "*"
 requests = "*"
 crhelper = "*"
+polling = "*"
+pynfsclient = "*"
 
 [dev-packages]
 pytest = "~=6.2.5"
