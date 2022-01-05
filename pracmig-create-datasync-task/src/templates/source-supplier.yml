@@ -12,8 +12,8 @@ Resources:
   DataSyncEC2Agent:
     Type: AWS::EC2::Instance
     Properties:
-      ImageId: "ami-02f47b11d24f08157"
-      InstanceType: m5.large
+      ImageId: "ami-0b96e7f3d3feaca81"
+      InstanceType: m5.2xlarge
       KeyName: !Ref BastionKeyName
       SubnetId: !Ref PrivateSubnet
       SecurityGroupIds:
