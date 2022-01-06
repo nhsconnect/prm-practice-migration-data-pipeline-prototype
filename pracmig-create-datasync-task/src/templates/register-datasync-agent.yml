@@ -12,14 +12,23 @@ Resources:
   DataSyncAgent:
     Type: AWS::DataSync::Agent
     Properties:
-      ActivationKey:
-        !Ref DataSyncAgentActivationKey
+      ActivationKey: !Ref DataSyncAgentActivationKey
       AgentName:
-        !Join ["-",["Agent", !Ref OdsCode, !Select [4,!Split ["-", !Select [2, !Split ["/", !Ref AWS::StackId]]],],],]
+        !Join [
+          "-",
+          [
+            "Agent",
+            !Ref OdsCode,
+            !Select [
+              4,
+              !Split ["-", !Select [2, !Split ["/", !Ref AWS::StackId]]],
+            ],
+          ],
+        ]
 
 Outputs:
   DataSyncAgentArn:
     Description: DataSync agent ARN
     Value: !GetAtt DataSyncAgent.AgentArn
     Export:
-      Name: !Join [ ":", [ !Ref "AWS::StackName", DataSyncAgentArn ] ]
+      Name: !Join [":", [!Ref "AWS::StackName", DataSyncAgentArn]]

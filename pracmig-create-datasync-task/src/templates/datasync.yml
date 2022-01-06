@@ -81,13 +81,14 @@ Resources:
   DataSyncTaskLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Join [
+      LogGroupName:
+        !Join [
           "-",
           [
             !Ref OdsCode,
             !Select [
-                4,
-                !Split ["-", !Select [2, !Split ["/", !Ref AWS::StackId]]],
+              4,
+              !Split ["-", !Select [2, !Split ["/", !Ref AWS::StackId]]],
             ],
           ],
         ]
