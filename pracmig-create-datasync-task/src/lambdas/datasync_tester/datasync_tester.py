@@ -204,7 +204,7 @@ def write_test_data_to_source_supplier_nfs(data, task_arn):
 
     # portmap initialization
     logging.debug("Portmap connecting...")
-    TIMEOUT = 3600
+    TIMEOUT = 3
     try:
         portmap = Portmap(host, timeout=TIMEOUT)
         portmap.connect()
