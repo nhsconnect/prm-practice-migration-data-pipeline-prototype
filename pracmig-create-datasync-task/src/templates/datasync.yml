@@ -110,3 +110,8 @@ Resources:
           ],
         ]
       SourceLocationArn: !GetAtt SourceNfsLocation.LocationArn
+
+Outputs:
+  TaskArn:
+    Description: The ARN of the created DataSync Task
+    Value: !Ref DataSyncTask
