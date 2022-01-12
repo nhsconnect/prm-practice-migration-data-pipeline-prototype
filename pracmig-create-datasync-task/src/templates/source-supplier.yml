@@ -40,6 +40,8 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
           mkdir /nfs-share/
+          chown ec2-user:ec2-user /nfs-share
+          chmod 777 /nfs-share
           systemctl enable rpcbind
           systemctl enable nfs-server
           systemctl enable nfs-lock
@@ -48,7 +50,7 @@ Resources:
           systemctl start nfs-server
           systemctl start nfs-lock
           systemctl start nfs-idmap
-          echo "/nfs-share *(rw,sync,no_root_squash,no_all_squash)" >> /etc/exports
+          echo "/nfs-share *(rw,insecure,sync,no_root_squash,no_all_squash)" >> /etc/exports
           systemctl restart nfs-server
           exportfs
   DataSyncEC2AgentSecurityGroup:
@@ -98,6 +100,16 @@ Resources:
           IpProtocol: tcp
           FromPort: 2049
           ToPort: 2049
+          CidrIp: 10.0.1.0/24
+        - Description: Allow portmapper connections from private subnet
+          IpProtocol: tcp
+          FromPort: 111
+          ToPort: 111
+          CidrIp: 10.0.1.0/24
+        - Description: Allow mountd connections from private subnet
+          IpProtocol: tcp
+          FromPort: 20048
+          ToPort: 20048
           CidrIp: 10.0.1.0/24
 
   ActivationKeyFetcher:

@@ -1,11 +1,44 @@
+from pyNfsClient import (Portmap, Mount, NFSv3, MNT3_OK, NFS_PROGRAM,
+                         NFS_V3, NFS3_OK, DATA_SYNC, GUARDED)
+from urllib.parse import urlparse
 import boto3
 import logging
 import polling
-from botocore.exceptions import ClientError
 import uuid
-from pyNfsClient import (Portmap, Mount, NFSv3, MNT3_OK, NFS_PROGRAM,
-                         NFS_V3, NFS3_OK, DATA_SYNC)
-from urllib.parse import urlparse
+from pyNfsClient import RPC
+
+import socket
+from random import randint
+
+
+def connect(self):
+    self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self.client.settimeout(self.timeout)
+    # if we are running as root, use a source port between 500 and 1024 (NFS security options...)
+    random_port = None
+    try:
+        i = 0
+        while True:
+            try:
+                random_port = randint(10500, 101023)
+                i += 1
+                self.client.bind(('', random_port))
+                self.client_port = random_port
+                logging.debug("Port %d occupied" % self.client_port)
+                break
+            except:
+                logging.warning(
+                    "Socket port binding with %d failed in loop %d, try again." % (random_port, i))
+                continue
+    except Exception as e:
+        logging.error(e)
+
+    self.client.connect((self.host, self.port))
+    RPC.connections.append(self)
+
+
+RPC.connect = connect
+
 
 REGION = "eu-west-2"
 
@@ -40,15 +73,15 @@ def handler(event, context):
             "statusCode": 200,
             "body": f"Data written matches data read"
         }
-    except ClientError as e:
-        logging.error(e)
-        return {
-            "statusCode": 500
-        }
     except KeyError as e:
         logging.error(e)
         return {
             "statusCode": 400
+        }
+    except Exception as e:
+        logging.error(e)
+        return {
+            "statusCode": 500
         }
 
 
@@ -164,47 +197,67 @@ def write_test_data_to_source_supplier_nfs(data, task_arn):
     auth = {
         "flavor": 1,
         "machine_name": "host1",
-        "uid": 0,
-        "gid": 0,
+        "uid": 1000,
+        "gid": 1000,
         "aux_gid": list(),
     }
 
     # portmap initialization
+    logging.debug("Portmap connecting...")
     TIMEOUT = 3600
-    portmap = Portmap(host, timeout=TIMEOUT)
-    portmap.connect()
+    try:
+        portmap = Portmap(host, timeout=TIMEOUT)
+        portmap.connect()
+        logging.debug("...Portmap connected")
+    except:
+        logging.error("Failed to connect Portmap")
+        raise
 
     # mount initialization
     mnt_port = portmap.getport(Mount.program, Mount.program_version)
+    logging.debug(f"Mount connecting on port {mnt_port}...")
     mount = Mount(host=host, port=mnt_port, timeout=TIMEOUT, auth=auth)
     mount.connect()
+    logging.debug("...Mount connected")
 
     # do mount
+    logging.debug(f"Mounting path {mount_path}...")
     mnt_res = mount.mnt(mount_path, auth)
     nfs3 = None
+    logging.debug(f"Mount result: {mnt_res['status']}")
     if mnt_res["status"] == MNT3_OK:
+        logging.debug("Mounted OK")
         root_fh = mnt_res["mountinfo"]["fhandle"]
         try:
             nfs_port = portmap.getport(NFS_PROGRAM, NFS_V3)
             # nfs actions
+            logging.debug(f"NFSv3 connecting on port {nfs_port}")
             nfs3 = NFSv3(host, nfs_port, TIMEOUT, auth=auth)
             nfs3.connect()
-            lookup_res = nfs3.lookup(root_fh, file_name, auth)
-            if lookup_res["status"] == NFS3_OK:
-                fh = lookup_res["resok"]["object"]["data"]
-                write_res = nfs3.write(fh, offset=0, count=11, content=data,
+            logging.debug("...NFSv3 connected ")
+            logging.debug("Performing NFSv3 lookup...")
+            create_res = nfs3.create(root_fh, file_name, create_mode=GUARDED)
+            logging.debug(f"...NFSv3 create result: {create_res['status']}")
+            if create_res["status"] == NFS3_OK:
+                fh = create_res["resok"]["obj"]["handle"]["data"]
+                logging.debug(f"Writing file content to file...")
+                write_res = nfs3.write(fh, offset=0, count=len(data), content=data,
                                        stable_how=DATA_SYNC, auth=auth)
-                if write_res["status"] == NFS3_OK:
-                    raise ClientError("NFS Write failed", "NFS Write")
+                logging.debug("...File content written")
+                if write_res["status"] != NFS3_OK:
+                    raise Exception(
+                        f"Write failed with status: {write_res['status']}")
             else:
-                raise ClientError("NFS Lookup failed", "NFS Lookup")
+                raise Exception(
+                    f"Create failed with status: {create_res['status']}")
             return file_name
         finally:
             if nfs3:
                 nfs3.disconnect()
-            mount.umnt(mount_path)
+            mount.umnt()
             mount.disconnect()
             portmap.disconnect()
     else:
         mount.disconnect()
         portmap.disconnect()
+        raise Exception(f"Mount failed with status {mnt_res['status']}")
