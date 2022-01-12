@@ -1,3 +1,4 @@
+import os
 from pyNfsClient import (Portmap, Mount, NFSv3, MNT3_OK, NFS_PROGRAM,
                          NFS_V3, NFS3_OK, DATA_SYNC, GUARDED)
 from urllib.parse import urlparse
@@ -88,16 +89,16 @@ def handler(event, context):
         }
 
 
-def extract_name_from_bucket_uri(location_uri):
-    location_uri = location_uri.split("//")
-    bucket_name = location_uri[1].replace("/", "")
+def extract_name_and_path_from_bucket_uri(location_uri):
+    bucket_name_and_path = location_uri.split("//", 1)[1]
+    split_bucket_name_and_path = bucket_name_and_path.split('/', 1)
+    bucket_name = split_bucket_name_and_path[0]
+    path = split_bucket_name_and_path[1]
 
-    return bucket_name
+    return bucket_name, path
 
 
-
-
-def retrieve_bucket_name(task_arn, location_arn_key):
+def get_bucket_name_and_path(task_arn, location_arn_key):
     datasync_client = boto3.client('datasync', region_name=REGION)
     task = datasync_client.describe_task(
         TaskArn=task_arn
@@ -109,10 +110,10 @@ def retrieve_bucket_name(task_arn, location_arn_key):
         LocationArn=location_arn
     )
 
-    bucket_name = extract_name_from_bucket_uri(
+    bucket_name, path = extract_name_and_path_from_bucket_uri(
         location_uri=location["LocationUri"])
 
-    return bucket_name
+    return bucket_name, path
 
 
 def retrieve_nfs_server_uri(task_arn, location_arn_key):
@@ -131,17 +132,19 @@ def retrieve_nfs_server_uri(task_arn, location_arn_key):
 
 
 def read_test_data_from_target_supplier_bucket(task_arn, object_key):
-    bucket_name = retrieve_bucket_name(
+    bucket_name, path = get_bucket_name_and_path(
         task_arn, location_arn_key="DestinationLocationArn")
     logging.info(f'Target bucket name: {bucket_name}')
-
+    logging.info(f'Target path: {path}')
 
     s3_client = boto3.client(
         's3',
         region_name=REGION
     )
 
-    response = s3_client.get_object(Bucket=bucket_name, Key=f"{object_key}")
+    object_path = os.path.join(path, object_key)
+
+    response = s3_client.get_object(Bucket=bucket_name, Key=f"{object_path}")
     logging.info(response)
     data = response['Body'].read().decode("utf-8")
     return data
@@ -164,7 +167,7 @@ def start_transfer(task_arn):
 
 
 def write_test_data_to_source_supplier_bucket(data, task_arn):
-    bucket_name = retrieve_bucket_name(
+    bucket_name = get_bucket_name_and_path(
         task_arn, location_arn_key="SourceLocationArn")
 
     s3_client = boto3.client('s3', region_name=REGION)
