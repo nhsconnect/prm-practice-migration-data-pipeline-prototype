@@ -145,7 +145,7 @@ def read_test_data_from_target_supplier_bucket(task_arn, object_key):
     object_path = os.path.join(path, object_key)
 
     response = s3_client.get_object(Bucket=bucket_name, Key=f"{object_path}")
-    logging.info(response)
+    logging.debug(response)
     data = response['Body'].read().decode("utf-8")
     return data
 
