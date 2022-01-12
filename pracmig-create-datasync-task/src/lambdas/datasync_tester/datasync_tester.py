@@ -48,7 +48,6 @@ def handler(event, context):
         root = logging.getLogger()
         root.setLevel(logging.INFO)
         task_arn = event["TaskArn"]
-        target_bucket_role_arn = event["TargetBucketAccessRoleArn"]
         source_data = "test"
 
         # object_key = write_test_data_to_source_supplier_bucket(
@@ -62,7 +61,7 @@ def handler(event, context):
         transfer_files(task_arn)
 
         target_data = read_test_data_from_target_supplier_bucket(
-            task_arn, target_bucket_role_arn, object_key)
+            task_arn, object_key)
 
         if source_data != target_data:
             return {
@@ -92,15 +91,6 @@ def extract_name_from_bucket_uri(location_uri):
     return bucket_name
 
 
-def assume_role(role_arn):
-    sts_client = boto3.client('sts')
-    assumed_role_object = sts_client.assume_role(
-        RoleArn=role_arn,
-        RoleSessionName="AssumeRoleTargetAccount"
-    )
-    credentials = assumed_role_object['Credentials']
-
-    return credentials
 
 
 def retrieve_bucket_name(task_arn, location_arn_key):
@@ -136,20 +126,15 @@ def retrieve_nfs_server_uri(task_arn, location_arn_key):
     return location["LocationUri"]
 
 
-def read_test_data_from_target_supplier_bucket(task_arn, role_arn, object_key):
+def read_test_data_from_target_supplier_bucket(task_arn, object_key):
     bucket_name = retrieve_bucket_name(
         task_arn, location_arn_key="DestinationLocationArn")
     logging.info(f'Target bucket name: {bucket_name}')
 
-    credentials = assume_role(role_arn)
-    logging.info(f'Assumed role: {role_arn}')
 
     s3_client = boto3.client(
         's3',
-        region_name=REGION,
-        aws_access_key_id=credentials['AccessKeyId'],
-        aws_secret_access_key=credentials['SecretAccessKey'],
-        aws_session_token=credentials['SessionToken']
+        region_name=REGION
     )
 
     response = s3_client.get_object(Bucket=bucket_name, Key=f"{object_key}")
