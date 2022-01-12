@@ -64,13 +64,17 @@ def handler(event, context):
             task_arn, object_key)
 
         if source_data != target_data:
+            logging.info(
+                f"Data written ({source_data}) does not match data read ({target_data})")
             return {
                 "statusCode": 500,
-                "body": f"Data written ({source_data}) does not match data read ({target_data})"
+                "body": "Data written does not match data read"
             }
+
+        logging.info("Data written matches data read")
         return {
             "statusCode": 200,
-            "body": f"Data written matches data read"
+            "body": "Data written matches data read"
         }
     except KeyError as e:
         logging.error(e)
