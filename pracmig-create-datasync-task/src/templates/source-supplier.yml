@@ -39,7 +39,7 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
-          mkdir /nfs-share/
+          mkdir /nfs-share
           chown ec2-user:ec2-user /nfs-share
           chmod 777 /nfs-share
           systemctl enable rpcbind
@@ -231,3 +231,6 @@ Outputs:
     Value: !GetAtt DataSyncActivationKey.ActivationKey
     Export:
       Name: !Join [":", [!Ref "AWS::StackName", DataSyncActivationKey]]
+  NFSServerPrivateIP:
+    Description: The private IP address of the NFS server
+    Value: !GetAtt NFSServerEC2.PrivateIp
