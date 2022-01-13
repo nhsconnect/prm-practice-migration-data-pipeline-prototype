@@ -80,3 +80,12 @@ Deploy the datasync tester lambda:
     -g <SECURITY_GROUP_OF_NFS_SERVER> \
     -i <YOUR_UNIQUE_ID>
 ```
+
+Invoke the datasync tester lambda:
+```shell
+aws lambda invoke --function-name datasync-tester-146-DataSyncTester-WSOSFTt58P3A \
+        --invocation-type Event \
+        --payload '{ "TaskArn": "<DATASYNC_TASK_ARN>" }' \
+        --cli-binary-format raw-in-base64-out \
+        response.json
+```
