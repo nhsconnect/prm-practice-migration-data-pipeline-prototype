@@ -26,8 +26,14 @@ Build and package the activator lambda:
 Deploy the mock datasync agent stack:
 
 ```shell
-./scripts/deploy-create-source-agent.sh -i <YOUR_UNIQUE_ID> -k <EC2_KEY_PAIR_NAME>
+./scripts/deploy-create-source-agent.sh -i <YOUR_UNIQUE_ID> -k <EC2_KEY_PAIR_NAME> -c <CIDR_BLOCK_ALLOWED_ACCESS_TO_BASTION>
 ```
+
+- `YOUR_UNIQUE_ID`, unique ID for the e2e test.
+- `EC2_KEY_PAIR_NAME`, key pair to use for ssh access to the bastion, for example: pracmig-bastion.
+- `CIDR_BLOCK_ALLOWED_ACCESS_TO_BASTION`, IP of the local machine that has access to the bastion, i.e your own IP.
+
+Example: pracmig-bastion
 
 #### Registering a DataSync Agent
 
@@ -70,7 +76,7 @@ Deploy the datasync tester lambda:
 
 ```shell
 ./scripts/deploy-datasync-tester.sh \
-    -n '<SUBNET_OF_NFS_SERVER>' \
-    -g '<SECURITY_GROUP_OF_NFS_SERVER>' \
+    -n <SUBNET_OF_NFS_SERVER> \
+    -g <SECURITY_GROUP_OF_NFS_SERVER> \
     -i <YOUR_UNIQUE_ID>
 ```
