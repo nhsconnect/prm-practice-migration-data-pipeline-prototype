@@ -8,9 +8,9 @@ Parameters:
       NFS server that the DataSync Task is configured to read from,
       and have access to the internet so that it can read from the
       target S3 Bucket that the DataSync Task writes to
-  DeploymentSecurityGroupId:
+  DeploymentVpcId:
     Type: String
-    Description: The ID of the security group to assign the lambda
+    Description: The ID of the VPC in which to deploy the lambda
 
 Resources:
   DataSyncTester:
@@ -23,9 +23,14 @@ Resources:
       Timeout: 300
       VpcConfig:
         SecurityGroupIds:
-          - !Ref DeploymentSecurityGroupId
+          - !Ref DataSyncTesterSecurityGroup
         SubnetIds:
           - !Ref DeploymentSubnetId
+  DataSyncTesterSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Security group for the datasync teseter lambda"
+      VpcId: !Ref DeploymentVpcId
   DataSyncTesterRole:
     Type: AWS::IAM::Role
     Properties:
