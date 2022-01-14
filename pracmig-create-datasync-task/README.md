@@ -123,6 +123,8 @@ aws lambda invoke \
 - `DATASYNC_TESTER_LAMBDA_NAME`: the resource name of the lambda; can be found as an output of the DataSync tester lambda stack
 - `DATASYNC_TASK_ARN`: the DataSync Task's ARN; can be found as an output of the DataSync Task stack
 
+_NOTE: The CLI command to invoke the lambda is asynchronous - you will need to check the CloudWatch logs or the DataSync Task's execution status to verify whether the test was successful._
+
 ### Troubleshooting
 
 #### SSH access to EC2 instances in mock source supplier stack
