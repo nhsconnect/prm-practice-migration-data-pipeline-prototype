@@ -27,7 +27,7 @@ Resources:
       SubnetId: !Ref PublicSubnet
       SecurityGroupIds:
         - !GetAtt BastionEC2SecurityGroup.GroupId
-  NFSServerEC2:
+  NfsServerEC2:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: "ami-0fc15d50d39e4503c"
@@ -35,7 +35,7 @@ Resources:
       KeyName: !Ref BastionKeyName
       SubnetId: !Ref PrivateSubnet
       SecurityGroupIds:
-        - !GetAtt NFSServerEC2SecurityGroup.GroupId
+        - !GetAtt NfsServerEC2SecurityGroup.GroupId
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
@@ -80,7 +80,7 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: !Ref CidrBlockAllowedAccessToBastion
-  NFSServerEC2SecurityGroup:
+  NfsServerEC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "Allow NFS client connections"
@@ -155,7 +155,7 @@ Resources:
     Properties:
       CidrBlock: 10.0.0.0/24
       VpcId: !Ref ActivationKeyFetcherVpc
-  PublicSubnetEIP:
+  PublicSubnetEip:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
@@ -165,12 +165,12 @@ Resources:
     Properties:
       CidrBlock: 10.0.1.0/24
       VpcId: !Ref ActivationKeyFetcherVpc
-  PrivateSubnetEIP:
+  PrivateSubnetEip:
     Type: AWS::EC2::EIP
   PrivateSubnetNatGateway:
     Type: AWS::EC2::NatGateway
     Properties:
-      AllocationId: !GetAtt PrivateSubnetEIP.AllocationId
+      AllocationId: !GetAtt PrivateSubnetEip.AllocationId
       ConnectivityType: public
       SubnetId: !Ref PublicSubnet
 
@@ -231,6 +231,6 @@ Outputs:
     Value: !GetAtt DataSyncActivationKey.ActivationKey
     Export:
       Name: !Join [":", [!Ref "AWS::StackName", DataSyncActivationKey]]
-  NFSServerPrivateIP:
+  NfsServerPrivateIp:
     Description: The private IP address of the NFS server
-    Value: !GetAtt NFSServerEC2.PrivateIp
+    Value: !GetAtt NfsServerEC2.PrivateIp
