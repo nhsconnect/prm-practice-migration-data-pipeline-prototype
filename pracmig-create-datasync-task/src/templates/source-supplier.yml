@@ -230,7 +230,19 @@ Outputs:
     Description: DataSync agent activation key
     Value: !GetAtt DataSyncActivationKey.ActivationKey
     Export:
-      Name: !Join [":", [!Ref "AWS::StackName", DataSyncActivationKey]]
+      Name: !Join [":", [!Ref "AWS::StackName", "DataSyncActivationKey"]]
   NfsServerPrivateIp:
     Description: The private IP address of the NFS server
     Value: !GetAtt NfsServerEC2.PrivateIp
+    Export:
+      Name: !Join [":", [!Ref "AWS::StackName", "NfsServerPrivateIp"]]
+  NfsServerSubnetId:
+    Description: The subnet ID of the NFS server
+    Value: !Ref PrivateSubnet
+    Export:
+      Name: !Join [":", [!Ref "AWS::StackName", "NfsServerSubnet"]]
+  VpcId:
+    Description: The mock source supplier VPC ID
+    Value: !Ref SourceSupplierVpc
+    Export:
+      Name: !Join [":", [!Ref "AWS::StackName", "VpcId"]]
