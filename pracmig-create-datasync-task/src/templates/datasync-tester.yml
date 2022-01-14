@@ -80,3 +80,10 @@ Resources:
             ],
           ],
         ]
+
+Outputs:
+  DataSyncTesterName:
+    Description: The resource name of the created datasync tester lambda function
+    Value: !Ref DataSyncTester
+    Export:
+      Name: !Join [":", [!Ref "AWS::StackName", "DataSyncTesterName"]]
