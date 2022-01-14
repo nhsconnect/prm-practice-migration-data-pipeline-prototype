@@ -105,9 +105,9 @@ Deploy the datasync tester lambda:
     -i '<SOME_UNIQUE_ID>'
 ```
 
-`SUBNET_ID_OF_NFS_SERVER`: the ID of the subnet that the NFS server from the mock source supplier stack resides in
-`VPC_ID_OF_NFS_SERVER`: the ID of the VPC that the NFS server from the mock source supplier stack resides in
-`SOME_UNIQUE_ID`: a unique ID for this stack (enables deploying the stack multiple times into the same AWS account; does not need to match the unique ID used for creating the mock source supplier stack)
+- `SUBNET_ID_OF_NFS_SERVER`: the ID of the subnet that the NFS server from the mock source supplier stack resides in
+- `VPC_ID_OF_NFS_SERVER`: the ID of the VPC that the NFS server from the mock source supplier stack resides in
+- `SOME_UNIQUE_ID`: a unique ID for this stack (enables deploying the stack multiple times into the same AWS account; does not need to match the unique ID used for creating the mock source supplier stack)
 
 Invoke the datasync tester lambda:
 
@@ -120,5 +120,43 @@ aws lambda invoke \
     response.json
 ```
 
-`DATASYNC_TESTER_LAMBDA_NAME`: the resource name of the lambda; can be found as an output of the DataSync tester lambda stack
-`DATASYNC_TASK_ARN`: the DataSync Task's ARN; can be found as an output of the DataSync Task stack
+- `DATASYNC_TESTER_LAMBDA_NAME`: the resource name of the lambda; can be found as an output of the DataSync tester lambda stack
+- `DATASYNC_TASK_ARN`: the DataSync Task's ARN; can be found as an output of the DataSync Task stack
+
+### Troubleshooting
+
+#### SSH access to EC2 instances in mock source supplier stack
+
+If there are any problems when running the various scripts, it can be useful to be able to SSH onto the EC2 instances, for example, to check network connectivity. The key-pair that is specified when deploying the mock source supplier stack will be set up for all 3 of the instances that it creates, and connections will be allowed to the bastion host from the IP address range that was also specified then.
+
+Connecting to the bastion host is simple, as it can be connected to directly, like so:
+
+```shell
+ssh -i '<PATH_TO_PRIVATE_KEY>' ec2-user@<BASTION_PUBLIC_IP>
+```
+
+- `PATH_TO_PRIVATE_KEY`: the path on your filesystem to the private SSH key that corresponds to the key-pair that was used when deploying the mock source supplier stack
+- `BASTION_PUBLIC_IP`: the public IP address of the bastion host.
+
+However, to connect to the DataSync Agent and NFS server, you cannot simply SSH from the bastion host, as it does not have the private key installed on it. Instead, you can create an SSH tunnel from your local machine through the bastion to the desired target machine.
+
+Set up an SSH tunnel to the DataSync Agent or NFS server:
+
+```shell
+ssh -fi '<PATH_TO_PRIVATE_KEY>' -L <LOCAL_PORT>:<PRIVATE_IP>:22 ec2-user@<BASTION_PUBLIC_IP> -N
+```
+
+- `PATH_TO_PRIVATE_KEY`: the path on your filesystem to the private SSH key that corresponds to the key-pair that was used when deploying the mock source supplier stack
+- `LOCAL_PORT`: any free port on your local machine, for example, 10022
+- `PRIVATE_IP`: the private IP address of the target machine you wish to connect to (i.e. the DataSync Agent or NFS server)
+- `BASTION_PUBLIC_IP`: the public IP address of the bastion host.
+
+Use the tunnel to connect to the target machine:
+
+```shell
+ssh -i '<PATH_TO_PRIVATE_KEY>' <USERNAME>@localhost -p <LOCAL_PORT>
+```
+
+- `PATH_TO_PRIVATE_KEY`: the path on your filesystem to the private SSH key that corresponds to the key-pair that was used when deploying the mock source supplier stack
+- `USERNAME`: the username, on the target machine, that has the private key associated with it; for the DataSync Agent this will be "admin", and for the NFS server this will be "ec2-user"
+- `LOCAL_PORT`: the port that was used when setting up the tunnel, for example, 10022.
