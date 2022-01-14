@@ -69,23 +69,25 @@ def handler(event, context):
                 f"Data written ({source_data}) does not match data read ({target_data})")
             return {
                 "statusCode": 500,
-                "body": "Data written does not match data read"
+                "body": "FAILURE! Data written does not match data read"
             }
 
         logging.info("Data written matches data read")
         return {
             "statusCode": 200,
-            "body": "Data written matches data read"
+            "body": "SUCCESS! Data written matches data read"
         }
     except KeyError as e:
         logging.error(e)
         return {
-            "statusCode": 400
+            "statusCode": 400,
+            "body": "FAILURE!"
         }
     except Exception as e:
         logging.error(e)
         return {
-            "statusCode": 500
+            "statusCode": 500,
+            "body": "FAILURE! Please check the CloudWatch logs"
         }
 
 
