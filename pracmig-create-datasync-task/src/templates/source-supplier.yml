@@ -57,7 +57,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "Allow the activation key-fetching lambda to be able to fetch the key from the source agent"
-      VpcId: !Ref ActivationKeyFetcherVpc
+      VpcId: !Ref SourceSupplierVpc
       SecurityGroupIngress:
         - Description: Allow SSH connections from public subnet
           IpProtocol: tcp
@@ -73,7 +73,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "Allow access from restricted external clients"
-      VpcId: !Ref ActivationKeyFetcherVpc
+      VpcId: !Ref SourceSupplierVpc
       SecurityGroupIngress:
         - Description: Allow external SSH access to Bastion
           IpProtocol: tcp
@@ -84,7 +84,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "Allow NFS client connections"
-      VpcId: !Ref ActivationKeyFetcherVpc
+      VpcId: !Ref SourceSupplierVpc
       SecurityGroupIngress:
         - Description: Allow SSH connections from public subnet
           IpProtocol: tcp
@@ -125,7 +125,7 @@ Resources:
           AGENT_IP: !GetAtt DataSyncEC2Agent.PrivateIp
       VpcConfig:
         SecurityGroupIds:
-          - !GetAtt ActivationKeyFetcherVpc.DefaultSecurityGroup
+          - !GetAtt SourceSupplierVpc.DefaultSecurityGroup
         SubnetIds:
           - !Ref PrivateSubnet
   ActivationKeyFetcherRole:
@@ -145,7 +145,7 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
 
   ## VPC
-  ActivationKeyFetcherVpc:
+  SourceSupplierVpc:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: 10.0.0.0/16
@@ -154,7 +154,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       CidrBlock: 10.0.0.0/24
-      VpcId: !Ref ActivationKeyFetcherVpc
+      VpcId: !Ref SourceSupplierVpc
   PublicSubnetEip:
     Type: AWS::EC2::EIP
     Properties:
@@ -164,7 +164,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       CidrBlock: 10.0.1.0/24
-      VpcId: !Ref ActivationKeyFetcherVpc
+      VpcId: !Ref SourceSupplierVpc
   PrivateSubnetEip:
     Type: AWS::EC2::EIP
   PrivateSubnetNatGateway:
@@ -181,13 +181,13 @@ Resources:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
       InternetGatewayId: !Ref InternetGateway
-      VpcId: !Ref ActivationKeyFetcherVpc
+      VpcId: !Ref SourceSupplierVpc
 
   ## PUBLIC SUBNET ROUTING
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref ActivationKeyFetcherVpc
+      VpcId: !Ref SourceSupplierVpc
   PublicRoute:
     Type: AWS::EC2::Route
     DependsOn: InternetGateway
@@ -204,7 +204,7 @@ Resources:
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref ActivationKeyFetcherVpc
+      VpcId: !Ref SourceSupplierVpc
   PrivateRoute:
     Type: AWS::EC2::Route
     DependsOn: InternetGateway
