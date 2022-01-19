@@ -163,6 +163,8 @@ ssh -i '<PATH_TO_PRIVATE_KEY>' <USERNAME>@localhost -p <LOCAL_PORT>
 - `USERNAME`: the username, on the target machine, that has the private key associated with it; for the DataSync Agent this will be "admin", and for the NFS server this will be "ec2-user"
 - `LOCAL_PORT`: the port that was used when setting up the tunnel, for example, 10022.
 
+_NOTE: When SSH'ing to a local port like this, an entry will be added to the known_hosts file (`~/.ssh/known_hosts`). This entry should be deleted once you have finished using the SSH tunnel; otherwise, you won't be able to use an SSH tunnel with the same port in future._
+
 #### Mock source supplier stack deletion
 
 The mock source supplier stack does not successfully delete the first time, and it takes a significant period of time to fail. The DataSync Agent also doesn't terminate when terminating the stack (so needs terminating manually before trying to delete the stack). Usually, trying to delete it a second time succeeds, though it can sometimes take a third attempt.
