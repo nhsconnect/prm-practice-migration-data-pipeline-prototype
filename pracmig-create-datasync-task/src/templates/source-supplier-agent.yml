@@ -1,11 +1,14 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Create a Source Supplier DataSync Agent
 Parameters:
-  CidrBlockAllowedAccessToBastion:
-    Description: "A CIDR block that will be allowed access to the bastion host"
+  SourceSupplierVpcId:
+    Description: "The ID of the VPC into which created instances will be placed"
     Type: String
-  BastionKeyName:
-    Description: "The name of a key pair to enable SSH access to the bastion host"
+  SubnetId:
+    Description: "The ID of a subnet into which created instances will be placed; must be a subnet in the VPC referenced by SourceSupplierVpcId"
+    Type: String
+  SshKeyName:
+    Description: "The name of a key pair to enable SSH access to instances"
     Type: String
 
 Resources:
@@ -14,26 +17,17 @@ Resources:
     Properties:
       ImageId: "ami-0b96e7f3d3feaca81"
       InstanceType: m5.2xlarge
-      KeyName: !Ref BastionKeyName
-      SubnetId: !Ref PrivateSubnet
+      KeyName: !Ref SshKeyName
+      SubnetId: !Ref SubnetId
       SecurityGroupIds:
         - !GetAtt DataSyncEC2AgentSecurityGroup.GroupId
-  BastionEC2:
-    Type: AWS::EC2::Instance
-    Properties:
-      ImageId: "ami-0c0a1cc13a52a158f"
-      InstanceType: t2.micro
-      KeyName: !Ref BastionKeyName
-      SubnetId: !Ref PublicSubnet
-      SecurityGroupIds:
-        - !GetAtt BastionEC2SecurityGroup.GroupId
   NfsServerEC2:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: "ami-0fc15d50d39e4503c"
       InstanceType: t2.micro
-      KeyName: !Ref BastionKeyName
-      SubnetId: !Ref PrivateSubnet
+      KeyName: !Ref SshKeyName
+      SubnetId: !Ref SubnetId
       SecurityGroupIds:
         - !GetAtt NfsServerEC2SecurityGroup.GroupId
       UserData:
@@ -57,60 +51,49 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "Allow the activation key-fetching lambda to be able to fetch the key from the source agent"
-      VpcId: !Ref SourceSupplierVpc
+      VpcId: !Ref SourceSupplierVpcId
       SecurityGroupIngress:
         - Description: Allow SSH connections from public subnet
           IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          CidrIp: 10.0.0.0/24
+          CidrIp: 10.0.0.0/24 # Assumed to be the public subnet IP range
         - Description: Allow ActivationKeyFetcher to retrieve ActivationKey
           IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: 10.0.1.0/24
-  BastionEC2SecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: "Allow access from restricted external clients"
-      VpcId: !Ref SourceSupplierVpc
-      SecurityGroupIngress:
-        - Description: Allow external SSH access to Bastion
-          IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: !Ref CidrBlockAllowedAccessToBastion
+          CidrIp: 10.0.1.0/24 # Assumed to be the private subnet IP range
   NfsServerEC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "Allow NFS client connections"
-      VpcId: !Ref SourceSupplierVpc
+      VpcId: !Ref SourceSupplierVpcId
       SecurityGroupIngress:
         - Description: Allow SSH connections from public subnet
           IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          CidrIp: 10.0.0.0/24
+          CidrIp: 10.0.0.0/24 # Assumed to be the public subnet IP range
         - Description: Allow NFS client connections from public subnet
           IpProtocol: tcp
           FromPort: 2049
           ToPort: 2049
-          CidrIp: 10.0.0.0/24
+          CidrIp: 10.0.0.0/24 # Assumed to be the public subnet IP range
         - Description: Allow NFS client connections from private subnet
           IpProtocol: tcp
           FromPort: 2049
           ToPort: 2049
-          CidrIp: 10.0.1.0/24
+          CidrIp: 10.0.1.0/24 # Assumed to be the private subnet IP range
         - Description: Allow portmapper connections from private subnet
           IpProtocol: tcp
           FromPort: 111
           ToPort: 111
-          CidrIp: 10.0.1.0/24
+          CidrIp: 10.0.1.0/24 # Assumed to be the private subnet IP range
         - Description: Allow mountd connections from private subnet
           IpProtocol: tcp
           FromPort: 20048
           ToPort: 20048
-          CidrIp: 10.0.1.0/24
+          CidrIp: 10.0.1.0/24 # Assumed to be the private subnet IP range
 
   ActivationKeyFetcher:
     Type: AWS::Lambda::Function
@@ -119,15 +102,15 @@ Resources:
       Handler: agent_activator.agent_activator.handler
       Role: !GetAtt ActivationKeyFetcherRole.Arn
       Runtime: python3.9
-      Timeout: 60
+      Timeout: 300
       Environment:
         Variables:
           AGENT_IP: !GetAtt DataSyncEC2Agent.PrivateIp
       VpcConfig:
         SecurityGroupIds:
-          - !GetAtt SourceSupplierVpc.DefaultSecurityGroup
+          - !Ref ActivationKeyFetcherSecurityGroup
         SubnetIds:
-          - !Ref PrivateSubnet
+          - !Ref SubnetId
   ActivationKeyFetcherRole:
     Type: AWS::IAM::Role
     Properties:
@@ -143,80 +126,11 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
-
-  ## VPC
-  SourceSupplierVpc:
-    Type: AWS::EC2::VPC
+  ActivationKeyFetcherSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
     Properties:
-      CidrBlock: 10.0.0.0/16
-      EnableDnsSupport: True
-  PublicSubnet:
-    Type: AWS::EC2::Subnet
-    Properties:
-      CidrBlock: 10.0.0.0/24
-      VpcId: !Ref SourceSupplierVpc
-  PublicSubnetEip:
-    Type: AWS::EC2::EIP
-    Properties:
-      Domain: vpc
-      InstanceId: !Ref BastionEC2
-  PrivateSubnet:
-    Type: AWS::EC2::Subnet
-    Properties:
-      CidrBlock: 10.0.1.0/24
-      VpcId: !Ref SourceSupplierVpc
-  PrivateSubnetEip:
-    Type: AWS::EC2::EIP
-  PrivateSubnetNatGateway:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt PrivateSubnetEip.AllocationId
-      ConnectivityType: public
-      SubnetId: !Ref PublicSubnet
-
-  ## VPC INTERNET GATEWAY
-  InternetGateway:
-    Type: AWS::EC2::InternetGateway
-  InternetGatewayAttachment:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      InternetGatewayId: !Ref InternetGateway
-      VpcId: !Ref SourceSupplierVpc
-
-  ## PUBLIC SUBNET ROUTING
-  PublicRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref SourceSupplierVpc
-  PublicRoute:
-    Type: AWS::EC2::Route
-    DependsOn: InternetGateway
-    Properties:
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref InternetGateway
-      RouteTableId: !Ref PublicRouteTable
-  PublicRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      SubnetId: !Ref PublicSubnet
-  ## PRIVATE SUBNET ROUTING
-  PrivateRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref SourceSupplierVpc
-  PrivateRoute:
-    Type: AWS::EC2::Route
-    DependsOn: InternetGateway
-    Properties:
-      DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref PrivateSubnetNatGateway
-      RouteTableId: !Ref PrivateRouteTable
-  PrivateRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable
-      SubnetId: !Ref PrivateSubnet
+      GroupDescription: "Security group for the activation key fetcher lambda"
+      VpcId: !Ref SourceSupplierVpcId
 
   DataSyncActivationKey:
     Type: Custom::DataSyncActivationKey
@@ -236,13 +150,3 @@ Outputs:
     Value: !GetAtt NfsServerEC2.PrivateIp
     Export:
       Name: !Join [":", [!Ref "AWS::StackName", "NfsServerPrivateIp"]]
-  NfsServerSubnetId:
-    Description: The subnet ID of the NFS server
-    Value: !Ref PrivateSubnet
-    Export:
-      Name: !Join [":", [!Ref "AWS::StackName", "NfsServerSubnet"]]
-  VpcId:
-    Description: The mock source supplier VPC ID
-    Value: !Ref SourceSupplierVpc
-    Export:
-      Name: !Join [":", [!Ref "AWS::StackName", "VpcId"]]

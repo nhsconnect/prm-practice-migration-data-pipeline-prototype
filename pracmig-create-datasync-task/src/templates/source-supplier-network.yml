@@ -1,0 +1,117 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create a Source Supplier DataSync Agent
+Parameters:
+  CidrBlockAllowedAccessToBastion:
+    Description: "A CIDR block that will be allowed access to the bastion host"
+    Type: String
+  BastionKeyName:
+    Description: "The name of a key pair to enable SSH access to the bastion host"
+    Type: String
+
+Resources:
+  BastionEC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: "ami-0c0a1cc13a52a158f"
+      InstanceType: t2.micro
+      KeyName: !Ref BastionKeyName
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds:
+        - !GetAtt BastionEC2SecurityGroup.GroupId
+  BastionEC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allow access from restricted external clients"
+      VpcId: !Ref SourceSupplierVpc
+      SecurityGroupIngress:
+        - Description: Allow external SSH access to Bastion
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref CidrBlockAllowedAccessToBastion
+
+  ## VPC
+  SourceSupplierVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: True
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.0.0/24
+      VpcId: !Ref SourceSupplierVpc
+  PublicSubnetEip:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref BastionEC2
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.1.0/24
+      VpcId: !Ref SourceSupplierVpc
+  PrivateSubnetEip:
+    Type: AWS::EC2::EIP
+  PrivateSubnetNatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt PrivateSubnetEip.AllocationId
+      ConnectivityType: public
+      SubnetId: !Ref PublicSubnet
+
+  ## VPC INTERNET GATEWAY
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref SourceSupplierVpc
+
+  ## PUBLIC SUBNET ROUTING
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref SourceSupplierVpc
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGateway
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref PublicRouteTable
+  PublicRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+  ## PRIVATE SUBNET ROUTING
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref SourceSupplierVpc
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGateway
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref PrivateSubnetNatGateway
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet
+
+Outputs:
+  PrivateSubnetId:
+    Description: The subnet ID of the private subnet
+    Value: !Ref PrivateSubnet
+    Export:
+      Name: !Join [":", [!Ref "AWS::StackName", "PrivateSubnet"]]
+  VpcId:
+    Description: The mock source supplier VPC ID
+    Value: !Ref SourceSupplierVpc
+    Export:
+      Name: !Join [":", [!Ref "AWS::StackName", "VpcId"]]

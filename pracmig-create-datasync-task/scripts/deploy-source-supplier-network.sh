@@ -10,10 +10,9 @@ do
     esac
 done
 
-aws cloudformation create-stack --template-body "$(cat ./src/templates/packaged-source-supplier.yml)" \
+aws cloudformation create-stack --template-body "$(cat ./src/templates/source-supplier-network.yml)" \
   --parameters ParameterKey=CidrBlockAllowedAccessToBastion,ParameterValue="${CidrBlockAllowedAccessToBastion}" \
                ParameterKey=BastionKeyName,ParameterValue="${BastionKeyName}" \
   --timeout-in-minutes 30 \
-  --stack-name "source-supplier-${id}" \
-  --disable-rollback \
-  --capabilities CAPABILITY_AUTO_EXPAND CAPABILITY_IAM
+  --stack-name "source-supplier-network-${id}" \
+  --disable-rollback

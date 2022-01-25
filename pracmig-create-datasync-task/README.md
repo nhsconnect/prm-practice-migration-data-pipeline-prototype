@@ -19,18 +19,12 @@ The DataSync Task requires source and target locations. Since, in a real deploym
 
 #### Creating a mock DataSync Agent
 
-The source location for the DataSync Task, which is assumed to be an NFS (Network File Storage) file share, will consist of a DataSync Agent, the IP address of the NFS server and the file share path on the NFS server. The scripts for the mock source supplier will create a VPC (representing the source supplier's network) along with 3 EC2 instances - 1 being the NFS server, 1 being the DataSync Agent, and 1 acting as a "bastion", or "jump-box", enabling SSH access into the network. This latter is useful when trying to debug problems.
+The source location for the DataSync Task, which is assumed to be an NFS (Network File Storage) file share, will consist of a DataSync Agent, the IP address of the NFS server and the file share path on the NFS server. Building of this infrastructure is split into two parts: 1) creating the mock source supplier network (including a Bastion host for external SSH access); and 2) creating the DataSync Agent and NFS server within that network.
 
-Build and package the mock source supplier stack:
-
-```shell
-./scripts/build-and-package-source-agent.sh
-```
-
-Deploy the mock source supplier stack:
+Deploy the mock source supplier network stack:
 
 ```shell
-./scripts/deploy-create-source-agent.sh \
+./scripts/deploy-source-supplier-network.sh \
     -k '<EC2_KEY_PAIR_NAME>' \
     -c '<CIDR_BLOCK_ALLOWED_ACCESS_TO_BASTION>' \
     -i '<SOME_UNIQUE_ID>'
@@ -38,6 +32,27 @@ Deploy the mock source supplier stack:
 
 - `EC2_KEY_PAIR_NAME`: a key pair to use for SSH access to the EC2 instances that are created
 - `CIDR_BLOCK_ALLOWED_ACCESS_TO_BASTION`: a CIDR block that will be allowed SSH access to the bastion, i.e. your own IP address (if specifying a single IP address, don't forget to add a trailing `/32` to make it a valid CIDR block).
+- `SOME_UNIQUE_ID`: a unique ID for this stack (enables deploying the stack multiple times into the same AWS account).
+
+Build and package the mock source supplier agent stack:
+
+```shell
+./scripts/build-and-package-source-supplier-agent.sh
+```
+
+Deploy the mock source supplier agent stack:
+
+```shell
+./scripts/deploy-source-supplier-agent.sh \
+    -k '<EC2_KEY_PAIR_NAME>' \
+    -v '<VPC_ID>' \
+    -s '<SUBNET_ID_FOR_INSTANCES>' \
+    -i '<SOME_UNIQUE_ID>'
+```
+
+- `EC2_KEY_PAIR_NAME`: a key pair to use for SSH access to the EC2 instances that are created
+- `VPC_ID`: the ID of the VPC; this can be found as an output of the mock source supplier network stack
+- `SUBNET_ID_FOR_INSTANCES`: the ID of the subnet (within the VPC) for the NFS server and DataSync Agent; this can be found as an output of the mock source supplier network stack
 - `SOME_UNIQUE_ID`: a unique ID for this stack (enables deploying the stack multiple times into the same AWS account)
 
 #### Registering a DataSync Agent
@@ -51,7 +66,7 @@ Deploy the register agent stack:
 ```
 
 - `ODS_CODE`: a unique string that will be used as part of the DataSync Agent's name to help with differentiating between multiple registered agents
-- `DATASYNC_AGENT_ACTIVATION_KEY`: the DataSync Agent's activation key; this can be found as an output of the stack that creates the mock source supplier.
+- `DATASYNC_AGENT_ACTIVATION_KEY`: the DataSync Agent's activation key; this can be found as an output of the stack that creates the mock source supplier agent.
 
 #### Creating a mock target supplier bucket
 
@@ -81,9 +96,9 @@ Deploy the datasync task stack:
 ```
 
 - `ODS_CODE`: a unique string, used to name some of the created AWS components such that they are easily identifiable as part of a given migration
-- `DATASYNC_AGENT_ARN`: The DataSync Agent's ARN; if using the mock source supplier stack, this can be found as an output of the stack that registers the agent
-- `SOURCE_NFS_HOST`: the IP address of the source supplier NFS server; if using the mock source supplier stack, this can be found as an output of that stack
-- `SOURCE_NFS_PATH`: the file share path on the source supplier NFS server; if using the mock source supplier stack, this can be found inside the `source-supplier.yml` template in the `templates/` directory
+- `DATASYNC_AGENT_ARN`: The DataSync Agent's ARN; if using the mock source supplier stacks, this can be found as an output of the stack that registers the agent
+- `SOURCE_NFS_HOST`: the IP address of the source supplier NFS server; if using the mock source supplier stacks, this can be found as an output of the stack that creates the DataSync Agent
+- `SOURCE_NFS_PATH`: the file share path on the source supplier NFS server; if using the mock source supplier stacks, this can be found inside the `source-supplier-agent.yml` template in the `templates/` directory
 - `TARGET_S3_ARN`: the ARN of the target supplier S3 bucket; if using the mock target supplier stack, this can be found as an output of that stack.
 
 #### Deploy the DataSync tester lambda
@@ -105,8 +120,8 @@ Deploy the datasync tester lambda:
     -i '<SOME_UNIQUE_ID>'
 ```
 
-- `SUBNET_ID_OF_NFS_SERVER`: the ID of the subnet that the NFS server from the mock source supplier stack resides in
-- `VPC_ID_OF_NFS_SERVER`: the ID of the VPC that the NFS server from the mock source supplier stack resides in
+- `SUBNET_ID_OF_NFS_SERVER`: the ID of the private subnet created by the mock source supplier network stack
+- `VPC_ID_OF_NFS_SERVER`: the ID of the VPC created by the mock source supplier network stack
 - `SOME_UNIQUE_ID`: a unique ID for this stack (enables deploying the stack multiple times into the same AWS account; does not need to match the unique ID used for creating the mock source supplier stack)
 
 Invoke the datasync tester lambda:

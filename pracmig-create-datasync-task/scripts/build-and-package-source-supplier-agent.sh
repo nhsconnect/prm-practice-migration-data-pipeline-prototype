@@ -7,6 +7,6 @@ pipenv run pip install -r <(PIPENV_VERBOSITY=-1 pipenv lock -r) --target "${DIR}
 cp -R src/lambdas/agent_activator "${DIR}"
 
 sam package \
-  --template src/templates/source-supplier.yml \
+  --template src/templates/source-supplier-agent.yml \
   --s3-bucket activation-key-fetcher \
-  --output-template-file src/templates/packaged-source-supplier.yml
+  --output-template-file src/templates/packaged-source-supplier-agent.yml
