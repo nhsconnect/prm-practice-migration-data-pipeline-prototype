@@ -15,4 +15,6 @@ aws cloudformation create-stack --template-body "$(cat ./src/templates/source-su
                ParameterKey=BastionKeyName,ParameterValue="${BastionKeyName}" \
   --timeout-in-minutes 30 \
   --stack-name "source-supplier-network-${id}" \
-  --disable-rollback
+  --disable-rollback \
+  --query 'StackId' \
+  | xargs aws cloudformation wait stack-create-complete --stack-name
