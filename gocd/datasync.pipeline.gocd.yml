@@ -8,6 +8,7 @@ pipelines:
         type: configrepo
     stages:
       - build_test_env:
+          approval: manual
           clean_workspace: true
           jobs:
             create_source_network:
